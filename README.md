@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/flare-scan.svg" alt="Flare Scan logo" width="190">
+  <img src="assets/flare-scan-logo-v2.svg" alt="Flare Scan logo" width="190">
 </p>
 
 <h1 align="center">Flare Scan</h1>
@@ -211,7 +211,7 @@ back to the main actor.
 flare-scan/
 ├── Package.swift
 ├── assets/
-│   ├── flare-scan.svg          # project/application logo
+│   ├── flare-scan-logo-v2.svg  # project/application logo
 │   └── hero.svg                # GitHub presentation graphic
 ├── packaging/
 │   └── DiskLens.entitlements   # macOS sandbox policy

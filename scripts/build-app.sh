@@ -31,7 +31,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp "$EXECUTABLE" "$APP/Contents/MacOS/$EXECUTABLE_NAME"
-cp "$ROOT/assets/flare-scan.svg" "$APP/Contents/Resources/FlareScan.svg"
+cp "$ROOT/assets/flare-scan-logo-v2.svg" "$APP/Contents/Resources/FlareScan.svg"
 
 # Turn the supplied SVG logo into a native macOS application icon.
 ICONSET="$DIST/FlareScan.iconset"
@@ -43,7 +43,7 @@ for spec in "16:icon_16x16.png" "32:icon_16x16@2x.png" \
             "512:icon_512x512.png" "1024:icon_512x512@2x.png"; do
   size="${spec%%:*}"
   file="${spec#*:}"
-  sips -s format png -z "$size" "$size" "$ROOT/assets/flare-scan.svg" \
+  sips -s format png -z "$size" "$size" "$ROOT/assets/flare-scan-logo-v2.svg" \
     --out "$ICONSET/$file" >/dev/null
 done
 iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/FlareScan.icns"
