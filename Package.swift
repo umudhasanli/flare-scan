@@ -13,6 +13,7 @@ let package = Package(
         .executableTarget(
             name: "FlareScan",
             path: "Sources/DiskLens",
+            resources: [.process("Resources")],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

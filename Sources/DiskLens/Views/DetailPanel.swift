@@ -32,7 +32,9 @@ struct DetailPanel: View {
                 ScrollView {
                     LazyVStack(spacing: 0) {
                         ForEach(Array(focus.children.prefix(300))) { child in
-                            DetailRow(node: child, isHovered: app.hovered?.id == child.id)
+                            DetailRow(node: child,
+                                      isHovered: app.hovered?.id == child.id,
+                                      onDelete: { app.requestDeletion(of: child) })
                                 .contentShape(Rectangle())
                                 .onTapGesture { app.drill(into: child) }
                                 .onHover { inside in app.hovered = inside ? child : nil }
@@ -47,6 +49,7 @@ struct DetailPanel: View {
 private struct DetailRow: View {
     let node: FileNode
     let isHovered: Bool
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(spacing: 5) {
@@ -61,6 +64,12 @@ private struct DetailRow: View {
                 Text(ByteFormat.string(node.size))
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
+                Button(action: onDelete) {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.borderless)
+                .help("Təsdiqdən sonra Zibil qutusuna köçür")
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {

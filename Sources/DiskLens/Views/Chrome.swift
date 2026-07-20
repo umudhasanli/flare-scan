@@ -92,7 +92,7 @@ struct StatusBar: View {
         HStack(spacing: 10) {
             Image(systemName: "lock.shield.fill")
                 .foregroundStyle(.green)
-            Text("Offline · yalnız oxuma · App Sandbox")
+            Text("Offline · silmə yalnız təsdiqlə · App Sandbox")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -152,9 +152,7 @@ struct EmptyStateView: View {
 
     var body: some View {
         VStack(spacing: 18) {
-            Image(systemName: "chart.pie.fill")
-                .font(.system(size: 60))
-                .foregroundStyle(.tint)
+            FlareScanLogo(size: 92)
             Text("Flare Scan")
                 .font(.largeTitle.bold())
             Text("Diskinizin hansı qovluq və fayllarla dolduğunu\ngörün — tam detallı, interaktiv analiz.")
@@ -174,7 +172,7 @@ struct EmptyStateView: View {
             HStack(spacing: 6) {
                 Image(systemName: "lock.shield.fill")
                     .foregroundStyle(.green)
-                Text("Tam offline · yalnız oxuma icazəsi · şəbəkəyə çıxış yoxdur")
+                Text("Tam offline · silmə yalnız təsdiqlə · şəbəkəyə çıxış yoxdur")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -182,5 +180,29 @@ struct EmptyStateView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+    }
+}
+
+struct FlareScanLogo: View {
+    let size: CGFloat
+
+    var body: some View {
+        if let url = logoURL,
+           let image = NSImage(contentsOf: url) {
+            Image(nsImage: image)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .accessibilityLabel("Flare Scan loqosu")
+        } else {
+            Image(systemName: "chart.pie.fill")
+                .font(.system(size: size * 0.65))
+                .foregroundStyle(.tint)
+        }
+    }
+
+    private var logoURL: URL? {
+        Bundle.main.url(forResource: "FlareScan", withExtension: "svg")
+            ?? Bundle.module.url(forResource: "FlareScan", withExtension: "svg")
     }
 }

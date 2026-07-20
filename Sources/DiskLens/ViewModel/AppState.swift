@@ -26,6 +26,8 @@ final class AppState: ObservableObject {
     @Published var totalItems = 0
     @Published var currentScanPath = ""
     @Published var scanRootURL: URL?
+    @Published var pendingDeletion: FileNode?
+    @Published var deletionError: String?
 
     private var scanTask: Task<Void, Never>?
     private var securityScopedURL: URL?
@@ -141,5 +143,95 @@ final class AppState: ObservableObject {
     func setFocus(_ node: FileNode) {
         focus = node
         hovered = nil
+    }
+
+    // MARK: - Safe deletion
+
+    /// Starts the explicit confirmation flow. The scan root itself is never a
+    /// valid deletion target.
+    func requestDeletion(of node: FileNode) {
+        guard node.id != root?.id else {
+            deletionError = "Seçilmiş əsas qovluq təhlükəsizlik səbəbilə silinə bilməz."
+            return
+        }
+        pendingDeletion = node
+    }
+
+    func cancelDeletion() {
+        pendingDeletion = nil
+    }
+
+    /// Moves the confirmed item to macOS Trash. Before touching disk, verify
+    /// both tree membership and path containment to prevent stale or forged
+    /// nodes from escaping the user-selected scan root.
+    func confirmDeletion() {
+        guard let node = pendingDeletion else { return }
+        pendingDeletion = nil
+
+        do {
+            try validateDeletionTarget(node)
+            try FileManager.default.trashItem(at: node.url, resultingItemURL: nil)
+            removeFromScannedTree(node)
+        } catch {
+            deletionError = error.localizedDescription
+        }
+    }
+
+    private func validateDeletionTarget(_ node: FileNode) throws {
+        guard let root, let selectedRoot = scanRootURL else {
+            throw DeletionSafetyError.noActiveScan
+        }
+        guard node.id != root.id, node.parent != nil else {
+            throw DeletionSafetyError.protectedRoot
+        }
+
+        var cursor: FileNode? = node
+        var belongsToTree = false
+        while let current = cursor {
+            if current.id == root.id { belongsToTree = true; break }
+            cursor = current.parent
+        }
+        guard belongsToTree else { throw DeletionSafetyError.outsideSelection }
+
+        let rootPath = selectedRoot.standardizedFileURL.path
+        let targetPath = node.url.standardizedFileURL.path
+        let prefix = rootPath == "/" ? "/" : rootPath + "/"
+        guard targetPath != rootPath, targetPath.hasPrefix(prefix) else {
+            throw DeletionSafetyError.outsideSelection
+        }
+        guard FileManager.default.fileExists(atPath: targetPath) else {
+            throw DeletionSafetyError.missingItem
+        }
+    }
+
+    private func removeFromScannedTree(_ node: FileNode) {
+        guard let parent = node.parent else { return }
+        parent.children.removeAll { $0.id == node.id }
+
+        var ancestor: FileNode? = parent
+        while let current = ancestor {
+            current.size = max(0, current.size - node.size)
+            ancestor = current.parent
+        }
+        totalItems = max(0, totalItems - itemCount(in: node))
+        hovered = nil
+        objectWillChange.send()
+    }
+
+    private func itemCount(in node: FileNode) -> Int {
+        1 + node.children.reduce(0) { $0 + itemCount(in: $1) }
+    }
+}
+
+private enum DeletionSafetyError: LocalizedError {
+    case noActiveScan, protectedRoot, outsideSelection, missingItem
+
+    var errorDescription: String? {
+        switch self {
+        case .noActiveScan: return "Aktiv tarama tapılmadı; heç nə silinmədi."
+        case .protectedRoot: return "Əsas seçilmiş qovluq silinə bilməz."
+        case .outsideSelection: return "Element seçilmiş qovluğun xaricindədir; heç nə silinmədi."
+        case .missingItem: return "Element artıq diskdə mövcud deyil."
+        }
     }
 }

@@ -11,6 +11,29 @@ struct ContentView: View {
             Divider()
             StatusBar()
         }
+        .alert("Zibil qutusuna köçürülsün?", isPresented: deletionConfirmation) {
+            Button("Ləğv et", role: .cancel) { app.cancelDeletion() }
+            Button("Zibil qutusuna köçür", role: .destructive) { app.confirmDeletion() }
+        } message: {
+            if let node = app.pendingDeletion {
+                Text("\(node.isDirectory ? "Qovluq" : "Fayl"): \(node.url.path)\nÖlçü: \(ByteFormat.string(node.size))\n\nElement macOS Zibil qutusuna köçürüləcək və oradan bərpa edilə bilər.")
+            }
+        }
+        .alert("Əməliyyat tamamlanmadı", isPresented: deletionErrorPresented) {
+            Button("Oldu", role: .cancel) { app.deletionError = nil }
+        } message: {
+            Text(app.deletionError ?? "Naməlum xəta")
+        }
+    }
+
+    private var deletionConfirmation: Binding<Bool> {
+        Binding(get: { app.pendingDeletion != nil },
+                set: { if !$0 { app.cancelDeletion() } })
+    }
+
+    private var deletionErrorPresented: Binding<Bool> {
+        Binding(get: { app.deletionError != nil },
+                set: { if !$0 { app.deletionError = nil } })
     }
 
     @ViewBuilder

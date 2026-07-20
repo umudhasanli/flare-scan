@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Flare Scan — visual disk space explorer for macOS</title>
+  <desc id="desc">A dark blue interface preview with a colorful sunburst disk map and safety highlights.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#102a43"/></linearGradient>
+    <linearGradient id="flare" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff4d6d"/><stop offset=".52" stop-color="#ff9f1c"/><stop offset="1" stop-color="#ffd166"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-opacity=".3"/></filter>
+  </defs>
+  <rect width="1200" height="560" rx="34" fill="url(#bg)"/>
+  <circle cx="1070" cy="80" r="180" fill="#2d6cdf" opacity=".10"/>
+  <circle cx="80" cy="520" r="220" fill="#ff4d6d" opacity=".08"/>
+  <g transform="translate(78 74)">
+    <text x="0" y="46" fill="#f7fbff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="54" font-weight="750">Flare Scan</text>
+    <text x="0" y="91" fill="#9fb5cc" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="22">Disk space, made visible.</text>
+    <text x="0" y="151" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Interactive Sunburst + Treemap</text>
+    <text x="0" y="185" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Fully offline · Native SwiftUI</text>
+    <text x="0" y="219" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Confirmed moves to macOS Trash</text>
+    <g transform="translate(0 264)">
+      <rect width="185" height="42" rx="21" fill="#1e3b55"/><text x="24" y="27" fill="#b9f6ca" font-family="-apple-system,sans-serif" font-size="14" font-weight="650">◆ APP SANDBOX</text>
+      <rect x="198" width="140" height="42" rx="21" fill="#1e3b55"/><text x="222" y="27" fill="#bde0fe" font-family="-apple-system,sans-serif" font-size="14" font-weight="650">● 0 DEPS</text>
+    </g>
+  </g>
+  <g transform="translate(675 280)" filter="url(#shadow)">
+    <circle r="188" fill="#0a1828" stroke="#294761" stroke-width="2"/>
+    <circle r="146" fill="none" stroke="#ff4d6d" stroke-width="44" stroke-dasharray="310 608" transform="rotate(-74)"/>
+    <circle r="146" fill="none" stroke="#ff9f1c" stroke-width="44" stroke-dasharray="182 736" stroke-dashoffset="-320" transform="rotate(-74)"/>
+    <circle r="146" fill="none" stroke="#4cc9f0" stroke-width="44" stroke-dasharray="120 798" stroke-dashoffset="-512" transform="rotate(-74)"/>
+    <circle r="95" fill="none" stroke="#ffd166" stroke-width="42" stroke-dasharray="242 355" transform="rotate(-108)"/>
+    <circle r="95" fill="none" stroke="#845ec2" stroke-width="42" stroke-dasharray="130 467" stroke-dashoffset="-252" transform="rotate(-108)"/>
+    <circle r="46" fill="url(#flare)"/>
+    <path d="M-8 21C7 9-6-3 17-28c-4 20 16 27 3 48C10 36-5 32-8 21Z" fill="#fff3d0"/>
+  </g>
+  <g transform="translate(910 110)" font-family="-apple-system,sans-serif">
+    <rect width="220" height="340" rx="20" fill="#f7fbff" opacity=".96"/>
+    <text x="20" y="38" fill="#102a43" font-size="16" font-weight="700">Largest items</text>
+    <g fill="#36566f" font-size="13">
+      <text x="20" y="78">Projects</text><text x="170" y="78">42 GB</text><rect x="20" y="88" width="175" height="6" rx="3" fill="#ff4d6d"/>
+      <text x="20" y="128">Videos</text><text x="170" y="128">27 GB</text><rect x="20" y="138" width="116" height="6" rx="3" fill="#ff9f1c"/>
+      <text x="20" y="178">Archives</text><text x="170" y="178">18 GB</text><rect x="20" y="188" width="78" height="6" rx="3" fill="#4cc9f0"/>
+    </g>
+    <rect x="20" y="245" width="180" height="58" rx="12" fill="#e9f7ef"/>
+    <text x="36" y="270" fill="#18794e" font-size="13" font-weight="700">✓ Confirmation required</text>
+    <text x="36" y="289" fill="#3b6b57" font-size="11">Items go to macOS Trash</text>
+  </g>
+</svg>
