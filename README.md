@@ -4,7 +4,7 @@
 
 <h1 align="center">Flare Scan</h1>
 
-<p align="center"><b>Disk space, made visible — a private, native disk analyzer for macOS.</b></p>
+<p align="center"><b>Disk space, made visible — a private, native disk space analyzer for macOS.</b></p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-111827" alt="macOS 14+">
@@ -16,7 +16,9 @@
 
 <p align="center"><img src="assets/hero.svg" alt="Flare Scan visual disk analyzer preview" width="900"></p>
 
-Flare Scan shows exactly what consumes your Mac's storage. Choose a folder or
+**Flare Scan is an open-source macOS disk space analyzer, storage visualizer,
+and safe disk cleanup utility built with SwiftUI.** It shows exactly what
+consumes your Mac's storage. Choose a folder or
 volume and explore it as an interactive **Sunburst** or **Treemap**. Hover for
 the full path and allocated size, click to drill down, and use breadcrumbs to
 move back through the hierarchy.
@@ -60,6 +62,10 @@ on disk, so the expensive branches stand out immediately.
   packages.
 - **Symlink safe.** Symbolic links are never followed, preventing cycles and
   double-counting.
+
+If you are looking for a native DaisyDisk alternative, visual disk usage tool,
+large-file finder, storage analyzer, Treemap viewer, or open-source Mac disk
+cleaner, Flare Scan keeps the workflow local and transparent.
 
 ## Install
 
@@ -158,7 +164,8 @@ dist/Flare Scan.app
 dist/Flare Scan.dmg
 ```
 
-The included build script embeds the Flare Scan SVG logo, creates `Info.plist`,
+The included build script embeds the official Flare Scan SVG logo, generates a
+native `.icns` app icon, creates `Info.plist`,
 applies the sandbox entitlements, ad-hoc signs the bundle, and verifies both the
 signature and sandbox flag.
 

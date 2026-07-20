@@ -8,8 +8,8 @@ set -euo pipefail
 APP_NAME="Flare Scan"
 EXECUTABLE_NAME="FlareScan"
 BUNDLE_ID="com.umudhasanli.flarescan"
-VERSION="1.0.0"
-BUILD="1"
+VERSION="1.1.0"
+BUILD="2"
 MIN_MACOS="14.0"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -59,11 +59,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleExecutable</key><string>${EXECUTABLE_NAME}</string>
     <key>CFBundleIconFile</key><string>FlareScan</string>
     <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleVersion</key><string>${BUILD}</string>
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>LSMinimumSystemVersion</key><string>${MIN_MACOS}</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
+    <key>NSHumanReadableDescription</key><string>Private visual disk space analyzer with Sunburst, Treemap, and confirmed cleanup.</string>
     <key>NSHumanReadableCopyright</key><string>© 2026 Umud Hasanli. MIT License.</string>
 </dict>
 </plist>
