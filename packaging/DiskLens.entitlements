@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Run inside the macOS App Sandbox: the app is confined to what the user
+         explicitly grants. This is the core of the "no vulnerability" promise. -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <!-- Read-only access to folders the user picks in the open panel.
+         The app can never write, delete, or modify anything. -->
+    <key>com.apple.security.files.user-selected.read-only</key>
+    <true/>
+
+    <!-- No network entitlement is present on purpose. With the sandbox on and
+         no network client/server key, the app cannot make any network
+         connection at all — it is fully offline. -->
+</dict>
+</plist>
