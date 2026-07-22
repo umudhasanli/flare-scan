@@ -28,22 +28,22 @@ struct InsightsView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text("Storage Insights")
                     .font(.largeTitle.bold())
-                Text("Ən çox yer tutan faylları, kateqoriyaları və eyni məzmunlu nüsxələri bir yerdə görün.")
+                Text("See the largest files, storage categories, and exact duplicates in one place.")
                     .foregroundStyle(.secondary)
             }
             Spacer()
             if app.isExportingReport {
                 ProgressView()
                     .controlSize(.small)
-                Text("Hesabat hazırlanır…")
+                Text("Preparing report…")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else if app.lastExportURL != nil {
-                Button("Hesabatı Finder-də göstər") { app.revealLastExport() }
+                Button("Show Report in Finder") { app.revealLastExport() }
             }
             Menu {
-                Button("JSON hesabat") { app.exportInsights(as: .json) }
-                Button("CSV hesabat") { app.exportInsights(as: .csv) }
+                Button("JSON Report") { app.exportInsights(as: .json) }
+                Button("CSV Report") { app.exportInsights(as: .csv) }
             } label: {
                 Label("Export", systemImage: "square.and.arrow.up")
             }
@@ -54,23 +54,23 @@ struct InsightsView: View {
     private var summaryCards: some View {
         HStack(spacing: 12) {
             MetricCard(
-                title: "İstifadə olunan yer",
+                title: "Allocated Space",
                 value: ByteFormat.string(app.root?.size ?? 0),
                 icon: "internaldrive.fill",
                 tint: .blue)
             MetricCard(
-                title: "Fayllar",
+                title: "Files",
                 value: insights.fileCount.formatted(),
                 icon: "doc.on.doc",
                 tint: .indigo)
             MetricCard(
-                title: "Qovluqlar",
+                title: "Folders",
                 value: insights.directoryCount.formatted(),
                 icon: "folder.fill",
                 tint: .orange)
             MetricCard(
-                title: "Duplicate qənaəti",
-                value: app.duplicateGroups == nil ? "Hələ yoxlanmayıb" : ByteFormat.string(app.duplicateReclaimableBytes),
+                title: "Duplicate Savings",
+                value: app.duplicateGroups == nil ? "Not analyzed" : ByteFormat.string(app.duplicateReclaimableBytes),
                 icon: "square.on.square",
                 tint: .green)
         }
@@ -81,7 +81,7 @@ struct InsightsView: View {
         if app.scanIssueCount == 0 {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.shield.fill").foregroundStyle(.green)
-                Text("Scan tamamlandı — oxuna bilməyən element qeydə alınmadı.")
+                Text("Scan complete — no unreadable items were recorded.")
                     .font(.callout)
                 Spacer()
             }
@@ -102,7 +102,7 @@ struct InsightsView: View {
                         }
                     }
                     if app.scanIssueCount > app.scanIssues.count {
-                        Text("Daha \((app.scanIssueCount - app.scanIssues.count).formatted()) xəta hesabatda say olaraq saxlanılıb.")
+                        Text("\((app.scanIssueCount - app.scanIssues.count).formatted()) additional errors are included in the report count.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -110,7 +110,7 @@ struct InsightsView: View {
                 .padding(.top, 8)
             } label: {
                 Label(
-                    "\(app.scanIssueCount.formatted()) element oxunmadı — nəticə natamam ola bilər",
+                    "\(app.scanIssueCount.formatted()) items were unreadable — results may be incomplete",
                     systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             }
@@ -120,7 +120,7 @@ struct InsightsView: View {
     }
 
     private var categorySection: some View {
-        InsightSection(title: "Kateqoriyalar", subtitle: "Fayl tiplərinin diskdə tutduğu real yer") {
+        InsightSection(title: "Categories", subtitle: "Allocated disk space grouped by file type") {
             VStack(spacing: 11) {
                 ForEach(Array(insights.categories.enumerated()), id: \.element.id) { index, item in
                     HStack(spacing: 10) {
@@ -138,7 +138,7 @@ struct InsightsView: View {
                             }
                         }
                         .frame(height: 8)
-                        Text("\(item.fileCount.formatted()) fayl")
+                        Text("\(item.fileCount.formatted()) files")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(width: 82, alignment: .trailing)
@@ -155,12 +155,12 @@ struct InsightsView: View {
     private var historySection: some View {
         InsightSection(
             title: "What Changed?",
-            subtitle: "İki scan arasında diski hansı faylların doldurduğunu görün"
+            subtitle: "See which files filled or freed storage between scans"
         ) {
             if app.isSavingBaseline {
                 HStack(spacing: 10) {
                     ProgressView().controlSize(.small)
-                    Text("Lokal baseline yenilənir…")
+                    Text("Updating the local baseline…")
                         .foregroundStyle(.secondary)
                 }
             } else if !app.hasSavedBaseline {
@@ -169,14 +169,14 @@ struct InsightsView: View {
                         .font(.system(size: 30))
                         .foregroundStyle(.blue)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Bu scan-i baseline kimi saxlayın")
+                        Text("Save this scan as a baseline")
                             .font(.headline)
-                        Text("Növbəti dəfə eyni qovluğu tarayanda yeni, böyüyən, kiçilən və yoxa çıxan böyük faylları dərhal göstərəcəyik.")
+                        Text("The next scan of this location will reveal large files that appeared, grew, shrank, or disappeared.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Baseline saxla") { app.saveCurrentScanAsBaseline() }
+                    Button("Save Baseline") { app.saveCurrentScanAsBaseline() }
                         .buttonStyle(.borderedProminent)
                 }
             } else if let delta = app.scanDelta {
@@ -187,25 +187,25 @@ struct InsightsView: View {
                             systemImage: "clock.badge.checkmark")
                             .foregroundStyle(.secondary)
                         Spacer()
-                        Button("Baseline-i yenilə") { app.saveCurrentScanAsBaseline() }
-                        Button("Unut", role: .destructive) { app.forgetSavedBaseline() }
+                        Button("Update Baseline") { app.saveCurrentScanAsBaseline() }
+                        Button("Forget", role: .destructive) { app.forgetSavedBaseline() }
                     }
 
                     HStack(spacing: 10) {
                         ChangeMetric(
-                            title: "Net dəyişiklik",
+                            title: "Net Change",
                             value: signedBytes(delta.netAllocatedChange),
                             tint: delta.netAllocatedChange > 0 ? .orange : .green)
-                        ChangeMetric(title: "Yeni", value: ByteFormat.string(delta.addedBytes), tint: .blue)
-                        ChangeMetric(title: "Böyüyən", value: ByteFormat.string(delta.grownBytes), tint: .orange)
-                        ChangeMetric(title: "Boşalan", value: ByteFormat.string(delta.releasedBytes), tint: .green)
+                        ChangeMetric(title: "New Files", value: ByteFormat.string(delta.addedBytes), tint: .blue)
+                        ChangeMetric(title: "Files That Grew", value: ByteFormat.string(delta.grownBytes), tint: .orange)
+                        ChangeMetric(title: "Space Released", value: ByteFormat.string(delta.releasedBytes), tint: .green)
                     }
 
                     if delta.changes.isEmpty {
                         ContentUnavailableView(
-                            "Böyük dəyişiklik yoxdur",
+                            "No Large Changes",
                             systemImage: "checkmark.circle",
-                            description: Text("1 MB-dan böyük izlənən fayllar baseline-dan sonra dəyişməyib."))
+                            description: Text("Tracked files larger than 1 MB have not changed since the baseline."))
                     } else {
                         VStack(spacing: 0) {
                             ForEach(delta.changes) { change in
@@ -217,7 +217,7 @@ struct InsightsView: View {
 
                     if delta.baselineWasTruncated || delta.currentWasTruncated {
                         Label(
-                            "Snapshot 50,000 ən böyük faylla məhdudlaşdırılıb; çox böyük ağaclarda kiçik dəyişikliklər göstərilməyə bilər.",
+                            "The snapshot is capped at the 50,000 largest files; small changes may be omitted in very large trees.",
                             systemImage: "info.circle")
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -227,17 +227,17 @@ struct InsightsView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Baseline bu scan üçün saxlanıldı")
+                        Text("Baseline saved for this scan")
                             .font(.headline)
                         if let date = app.baselineSavedAt {
-                            Text("\(date.formatted(date: .abbreviated, time: .shortened)) · Dəyişiklikləri görmək üçün sonra eyni qovluğu yenidən tarayın.")
+                            Text("\(date.formatted(date: .abbreviated, time: .shortened)) · Scan this location again later to see what changed.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
                     }
                     Spacer()
-                    Button("Baseline-i yenilə") { app.saveCurrentScanAsBaseline() }
-                    Button("Unut", role: .destructive) { app.forgetSavedBaseline() }
+                    Button("Update Baseline") { app.saveCurrentScanAsBaseline() }
+                    Button("Forget", role: .destructive) { app.forgetSavedBaseline() }
                 }
             }
         }
@@ -250,7 +250,7 @@ struct InsightsView: View {
     }
 
     private var largestFilesSection: some View {
-        InsightSection(title: "Ən böyük fayllar", subtitle: "Bütün seçilmiş ağac üzrə ilk 50 fayl") {
+        InsightSection(title: "Largest Files", subtitle: "Top 50 files across the entire selected tree") {
             VStack(spacing: 0) {
                 ForEach(insights.largestFiles) { node in
                     FileInsightRow(node: node)
@@ -263,14 +263,14 @@ struct InsightsView: View {
     @ViewBuilder
     private var oldLargeFilesSection: some View {
         InsightSection(
-            title: "Köhnə böyük fayllar",
-            subtitle: "100 MB-dan böyük və ən az 180 gündür dəyişdirilməyən fayllar"
+            title: "Old Large Files",
+            subtitle: "Files larger than 100 MB and unchanged for at least 180 days"
         ) {
             if insights.oldLargeFiles.isEmpty {
                 ContentUnavailableView(
-                    "Köhnə böyük fayl tapılmadı",
+                    "No Old Large Files",
                     systemImage: "clock.badge.checkmark",
-                    description: Text("Bu scan-da göstərilən meyarlara uyğun fayl yoxdur."))
+                    description: Text("No files in this scan match the current criteria."))
             } else {
                 VStack(spacing: 0) {
                     ForEach(insights.oldLargeFiles) { node in
@@ -286,7 +286,7 @@ struct InsightsView: View {
     private var duplicatesSection: some View {
         InsightSection(
             title: "Duplicate Finder",
-            subtitle: "Eyni ölçünü yox, SHA-256 ilə byte-for-byte eyni məzmunu tapır"
+            subtitle: "Finds byte-for-byte identical content with SHA-256, not merely equal sizes"
         ) {
             if app.isFindingDuplicates {
                 VStack(alignment: .leading, spacing: 10) {
@@ -294,34 +294,34 @@ struct InsightsView: View {
                         ProgressView(
                             value: Double(app.duplicateFilesHashed),
                             total: Double(app.duplicateCandidateFiles))
-                        Text("\(app.duplicateFilesHashed.formatted()) / \(app.duplicateCandidateFiles.formatted()) namizəd yoxlanıb")
+                        Text("\(app.duplicateFilesHashed.formatted()) / \(app.duplicateCandidateFiles.formatted()) candidates checked")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
                         ProgressView()
-                        Text("Eyni ölçülü namizədlər hazırlanır…")
+                        Text("Preparing same-size candidates…")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Button("Yoxlamanı dayandır") { app.cancelDuplicateScan() }
+                    Button("Stop Analysis") { app.cancelDuplicateScan() }
                 }
             } else if let groups = app.duplicateGroups {
                 if groups.isEmpty {
                     ContentUnavailableView(
-                        "Duplicate tapılmadı",
+                        "No Duplicates Found",
                         systemImage: "checkmark.seal.fill",
-                        description: Text("1 MB-dan böyük fayllar arasında eyni məzmunlu nüsxə yoxdur."))
+                        description: Text("No identical content was found among files larger than 1 MB."))
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
                         Label(
-                            "\(groups.count.formatted()) qrup · potensial \(ByteFormat.string(app.duplicateReclaimableBytes)) qənaət",
+                            "\(groups.count.formatted()) groups · up to \(ByteFormat.string(app.duplicateReclaimableBytes)) reclaimable",
                             systemImage: "sparkles")
                             .font(.headline)
                             .foregroundStyle(.green)
                         ForEach(groups) { group in
                             DuplicateGroupView(group: group)
                         }
-                        Button("Yenidən yoxla") { app.findDuplicates() }
+                        Button("Analyze Again") { app.findDuplicates() }
                     }
                 }
             } else {
@@ -330,14 +330,14 @@ struct InsightsView: View {
                         .font(.system(size: 30))
                         .foregroundStyle(.green)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Təhlükəsiz, lokal duplicate analizi")
+                        Text("Safe, local duplicate analysis")
                             .font(.headline)
-                        Text("Yalnız 1 MB-dan böyük, eyni ölçülü fayllar hash edilir. Fayl adları və məzmun cihazdan çıxmır; heç nə avtomatik silinmir.")
+                        Text("Only same-size files larger than 1 MB are hashed. File names and contents never leave this Mac, and nothing is removed automatically.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    Button("Duplicate-ləri tap") { app.findDuplicates() }
+                    Button("Find Duplicates") { app.findDuplicates() }
                         .buttonStyle(.borderedProminent)
                 }
             }
@@ -423,7 +423,7 @@ private struct StorageChangeRow: View {
                     Image(systemName: "magnifyingglass")
                 }
                 .buttonStyle(.borderless)
-                .help("Finder-də göstər")
+                .help("Show in Finder")
             }
         }
         .padding(.vertical, 8)
@@ -491,7 +491,7 @@ private struct FileInsightRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 if showsModifiedDate, let modifiedAt = node.modifiedAt {
-                    Text("Son dəyişiklik: \(modifiedAt.formatted(date: .abbreviated, time: .omitted))")
+                    Text("Last modified: \(modifiedAt.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -503,12 +503,12 @@ private struct FileInsightRow: View {
                 Image(systemName: "magnifyingglass")
             }
             .buttonStyle(.borderless)
-            .help("Finder-də göstər")
+            .help("Show in Finder")
             Button { app.requestDeletion(of: node) } label: {
                 Image(systemName: "trash").foregroundStyle(.red)
             }
             .buttonStyle(.borderless)
-            .help("Təsdiqdən sonra Zibil qutusuna köçür")
+            .help("Move to Trash after confirmation")
         }
         .padding(.vertical, 8)
     }
@@ -529,12 +529,12 @@ private struct DuplicateGroupView: View {
         } label: {
             HStack {
                 Image(systemName: "doc.on.doc.fill").foregroundStyle(.orange)
-                Text("\(group.files.count) eyni fayl")
+                Text("\(group.files.count) identical files")
                     .font(.headline)
-                Text("hər biri \(ByteFormat.string(group.logicalSize))")
+                Text("\(ByteFormat.string(group.logicalSize)) each")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text("Qənaət: \(ByteFormat.string(group.reclaimableSize))")
+                Text("Reclaimable: \(ByteFormat.string(group.reclaimableSize))")
                     .foregroundStyle(.green)
                     .font(.callout.weight(.semibold))
             }

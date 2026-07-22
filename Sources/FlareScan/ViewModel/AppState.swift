@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
         case sunburst = "Sunburst"
         case treemap = "Treemap"
         case insights = "Insights"
+        case memory = "Memory Watch"
         var id: String { rawValue }
     }
 
@@ -47,13 +48,37 @@ final class AppState: ObservableObject {
     @Published var scanDelta: ScanDelta?
     @Published var isSavingBaseline = false
     @Published var historyError: String?
+    @Published var memoryMonitorEnabled = false
+    @Published var memoryMonitorInterval: MemoryMonitorInterval = .oneMinute
+    @Published var isSamplingMemory = false
+    @Published var memoryApps: [MemoryAppStat] = []
+    @Published var memoryLastSampleAt: Date?
+    @Published var memorySessionStartedAt: Date
+    @Published var memoryTotalCurrentBytes: Int64 = 0
+    @Published var memoryTotalPeakBytes: Int64 = 0
+    @Published var memoryTotalAverageBytes: Int64 = 0
+    @Published var memoryTotalPoints: [MemoryPoint] = []
+    @Published var memorySampleCount = 0
+    @Published var memoryAccessUnavailable = false
+    @Published var pendingAppQuit: MemoryAppStat?
+    @Published var memoryQuitError: String?
 
     private var scanTask: Task<Void, Never>?
     private var duplicateTask: Task<Void, Never>?
+    private var memoryMonitorTask: Task<Void, Never>?
     private var currentSnapshot: ScanSnapshot?
     private var securityScopedURL: URL?
+    private var memorySession: MemorySession
+    private var memoryMonitorGeneration = 0
     /// Bumped on every scan/cancel so results from a superseded scan are ignored.
     private var scanGeneration = 0
+
+    init() {
+        let startedAt = Date()
+        memorySessionStartedAt = startedAt
+        memorySession = MemorySession(startedAt: startedAt)
+        startMemoryMonitoring()
+    }
 
     // MARK: - Scanning
 
@@ -63,8 +88,8 @@ final class AppState: ObservableObject {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.message = "Analiz üçün qovluq və ya disk seçin"
-        panel.prompt = "Tara"
+        panel.message = "Choose a folder or volume to analyze"
+        panel.prompt = "Scan"
         panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -76,8 +101,8 @@ final class AppState: ObservableObject {
         scanGeneration += 1
         let generation = scanGeneration
 
-        // Under the sandbox, an open-panel selection grants access for this
-        // launch; this call also covers the case of a re-resolved URL.
+        // This also preserves compatibility with security-scoped URLs opened
+        // by sandboxed development builds.
         if url.startAccessingSecurityScopedResource() {
             securityScopedURL = url
         }
@@ -88,7 +113,7 @@ final class AppState: ObservableObject {
         totalItems = 0
         scanIssueCount = 0
         scanIssues = []
-        currentScanPath = "Başlanır…"
+        currentScanPath = "Starting…"
         scanRootURL = url
         root = nil
         focus = nil
@@ -327,12 +352,139 @@ final class AppState: ObservableObject {
         scanDelta = nil
     }
 
+    // MARK: - Memory Watch
+
+    func startMemoryMonitoring() {
+        guard memoryMonitorTask == nil else {
+            memoryMonitorEnabled = true
+            return
+        }
+        memoryMonitorEnabled = true
+        memoryMonitorGeneration += 1
+        let generation = memoryMonitorGeneration
+        let interval = memoryMonitorInterval.rawValue
+        memoryMonitorTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                await self.collectMemorySample(generation: generation)
+                do {
+                    try await Task.sleep(
+                        nanoseconds: UInt64(interval * 1_000_000_000))
+                } catch {
+                    return
+                }
+            }
+        }
+    }
+
+    func stopMemoryMonitoring() {
+        memoryMonitorGeneration += 1
+        memoryMonitorTask?.cancel()
+        memoryMonitorTask = nil
+        memorySession.breakSamplingContinuity()
+        memoryMonitorEnabled = false
+        isSamplingMemory = false
+    }
+
+    func setMemoryMonitorInterval(_ interval: MemoryMonitorInterval) {
+        guard memoryMonitorInterval != interval else { return }
+        let wasEnabled = memoryMonitorEnabled
+        stopMemoryMonitoring()
+        memoryMonitorInterval = interval
+        if wasEnabled { startMemoryMonitoring() }
+    }
+
+    func refreshMemoryNow() {
+        if !memoryMonitorEnabled {
+            startMemoryMonitoring()
+            return
+        }
+        let generation = memoryMonitorGeneration
+        Task { [weak self] in
+            await self?.collectMemorySample(generation: generation)
+        }
+    }
+
+    func resetMemorySession() {
+        let startedAt = Date()
+        memorySession = MemorySession(startedAt: startedAt)
+        memorySessionStartedAt = startedAt
+        memoryApps = []
+        memoryLastSampleAt = nil
+        memoryTotalCurrentBytes = 0
+        memoryTotalPeakBytes = 0
+        memoryTotalAverageBytes = 0
+        memoryTotalPoints = []
+        memorySampleCount = 0
+        memoryAccessUnavailable = false
+        if memoryMonitorEnabled { refreshMemoryNow() }
+    }
+
+    func requestQuit(_ stat: MemoryAppStat) {
+        guard stat.canRequestQuit else { return }
+        pendingAppQuit = stat
+    }
+
+    func cancelAppQuit() {
+        pendingAppQuit = nil
+    }
+
+    func confirmAppQuit() {
+        guard let stat = pendingAppQuit else { return }
+        pendingAppQuit = nil
+        var sent = false
+        for pid in stat.processIdentifiers {
+            guard pid != ProcessInfo.processInfo.processIdentifier,
+                  let application = NSRunningApplication(processIdentifier: pid),
+                  !application.isTerminated else { continue }
+            sent = application.terminate() || sent
+        }
+        guard sent else {
+            memoryQuitError = "The normal quit request could not be sent. The app may have already closed."
+            return
+        }
+        Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 1_000_000_000)
+            self?.refreshMemoryNow()
+        }
+    }
+
+    private func collectMemorySample(generation: Int) async {
+        guard generation == memoryMonitorGeneration,
+              memoryMonitorEnabled,
+              !isSamplingMemory else { return }
+        isSamplingMemory = true
+        let readings = await Task.detached(priority: .utility) {
+            MemorySampler.sample()
+        }.value
+        guard generation == memoryMonitorGeneration, memoryMonitorEnabled else {
+            return
+        }
+        let date = Date()
+        memoryAccessUnavailable = !readings.isEmpty
+            && readings.allSatisfy { $0.residentBytes == 0 }
+        memorySession.ingest(readings, at: date)
+        applyMemorySnapshot(memorySession.snapshot(referenceDate: date))
+        isSamplingMemory = false
+    }
+
+    private func applyMemorySnapshot(_ snapshot: MemorySessionSnapshot) {
+        memorySessionStartedAt = snapshot.startedAt
+        memoryLastSampleAt = snapshot.lastSampleAt
+        memorySampleCount = snapshot.sampleCount
+        memoryTotalCurrentBytes = snapshot.totalCurrentBytes
+        memoryTotalPeakBytes = snapshot.totalPeakBytes
+        memoryTotalAverageBytes = snapshot.totalAverageBytes
+        memoryTotalPoints = snapshot.totalPoints
+        memoryApps = snapshot.apps
+    }
+
     func exportInsights(as format: InsightReportFormat) {
         guard let root, let insights, !isExportingReport else { return }
 
         let panel = NSSavePanel()
-        panel.title = "Flare Scan hesabatını saxla"
-        panel.prompt = "Saxla"
+        panel.title = "Save Flare Scan Report"
+        panel.prompt = "Save"
         panel.canCreateDirectories = true
         panel.allowedContentTypes = [format == .json ? .json : .commaSeparatedText]
         let date = Date().formatted(.iso8601.year().month().day())
@@ -458,7 +610,7 @@ final class AppState: ObservableObject {
     /// valid deletion target.
     func requestDeletion(of node: FileNode) {
         guard node.id != root?.id else {
-            deletionError = "Seçilmiş əsas qovluq təhlükəsizlik səbəbilə silinə bilməz."
+            deletionError = "The selected scan root is protected and cannot be removed."
             return
         }
         pendingDeletion = node
@@ -542,10 +694,10 @@ private enum DeletionSafetyError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noActiveScan: return "Aktiv tarama tapılmadı; heç nə silinmədi."
-        case .protectedRoot: return "Əsas seçilmiş qovluq silinə bilməz."
-        case .outsideSelection: return "Element seçilmiş qovluğun xaricindədir; heç nə silinmədi."
-        case .missingItem: return "Element artıq diskdə mövcud deyil."
+        case .noActiveScan: return "No active scan was found; nothing was removed."
+        case .protectedRoot: return "The selected scan root cannot be removed."
+        case .outsideSelection: return "The item is outside the selected scan root; nothing was removed."
+        case .missingItem: return "The item no longer exists on disk."
         }
     }
 }

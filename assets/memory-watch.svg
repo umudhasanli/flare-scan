@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Flare Scan Memory Watch</title>
+  <desc id="desc">A native macOS memory dashboard with live app usage, session peaks, hourly trends, and safe quit controls.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#071426"/><stop offset="1" stop-color="#142743"/></linearGradient>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#5b7cfa"/><stop offset="1" stop-color="#49c6ff"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity=".38"/></filter>
+  </defs>
+  <rect width="1200" height="650" rx="34" fill="url(#bg)"/>
+  <circle cx="1100" cy="40" r="220" fill="#5b7cfa" opacity=".09"/>
+  <circle cx="80" cy="650" r="250" fill="#49c6ff" opacity=".06"/>
+  <g transform="translate(64 48)" filter="url(#shadow)" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+    <rect width="1072" height="554" rx="20" fill="#f7f9fc"/>
+    <path d="M20 0h1032a20 20 0 0 1 20 20v42H0V20A20 20 0 0 1 20 0Z" fill="#e8edf4"/>
+    <circle cx="25" cy="31" r="7" fill="#ff5f57"/><circle cx="49" cy="31" r="7" fill="#febc2e"/><circle cx="73" cy="31" r="7" fill="#28c840"/>
+    <text x="105" y="37" fill="#213547" font-size="15" font-weight="700">Flare Scan</text>
+    <g transform="translate(28 84)">
+      <text x="0" y="28" fill="#13283b" font-size="29" font-weight="760">Memory Watch</text>
+      <circle cx="203" cy="19" r="5" fill="#24b36b"/>
+      <text x="0" y="53" fill="#6d7f90" font-size="14">Live app memory · child processes · session and hourly trends</text>
+      <rect x="842" y="3" width="160" height="38" rx="10" fill="#1677ff"/><text x="873" y="28" fill="#fff" font-size="13" font-weight="700">Measure now</text>
+
+      <g transform="translate(0 76)">
+        <rect width="238" height="82" rx="13" fill="#fff" stroke="#dce4ec"/><text x="17" y="25" fill="#7b8b9b" font-size="11">TRACKED NOW</text><text x="17" y="57" fill="#2478ed" font-size="26" font-weight="760">7.8 GB</text>
+        <rect x="252" width="238" height="82" rx="13" fill="#fff" stroke="#dce4ec"/><text x="269" y="25" fill="#7b8b9b" font-size="11">SESSION PEAK</text><text x="269" y="57" fill="#ef8a25" font-size="26" font-weight="760">9.4 GB</text>
+        <rect x="504" width="238" height="82" rx="13" fill="#fff" stroke="#dce4ec"/><text x="521" y="25" fill="#7b8b9b" font-size="11">SESSION AVERAGE</text><text x="521" y="57" fill="#7458e8" font-size="26" font-weight="760">6.9 GB</text>
+        <rect x="756" width="246" height="82" rx="13" fill="#fff" stroke="#dce4ec"/><text x="773" y="25" fill="#7b8b9b" font-size="11">SESSION DURATION</text><text x="773" y="57" fill="#1d9b61" font-size="26" font-weight="760">3h 42m</text>
+      </g>
+
+      <g transform="translate(0 182)">
+        <rect width="1002" height="270" rx="14" fill="#fff" stroke="#dce4ec"/>
+        <text x="20" y="34" fill="#13283b" font-size="15" font-weight="700">Applications</text>
+        <text x="842" y="34" fill="#6d7f90" font-size="11">LAST-HOUR TREND</text>
+        <line x1="20" y1="50" x2="982" y2="50" stroke="#e7ecf1"/>
+
+        <circle cx="42" cy="86" r="18" fill="#e9f1ff"/><text x="35" y="92" fill="#2478ed" font-size="18" font-weight="700">C</text>
+        <text x="72" y="82" fill="#203446" font-size="14" font-weight="700">Google Chrome</text><text x="72" y="101" fill="#81909e" font-size="11">14 processes · running for 5h 18m</text>
+        <path d="M720 98 C750 74 777 105 806 83 S860 92 890 69 S936 87 962 64" fill="none" stroke="url(#line)" stroke-width="3" stroke-linecap="round"/>
+        <text x="610" y="90" fill="#ef8a25" font-size="11" font-weight="650">REVIEW TREND</text><text x="902" y="91" fill="#203446" font-size="16" font-weight="750">3.2 GB</text>
+
+        <line x1="20" y1="122" x2="982" y2="122" stroke="#eef2f5"/>
+        <circle cx="42" cy="158" r="18" fill="#f1edff"/><text x="35" y="164" fill="#7458e8" font-size="18" font-weight="700">X</text>
+        <text x="72" y="154" fill="#203446" font-size="14" font-weight="700">Xcode</text><text x="72" y="173" fill="#81909e" font-size="11">9 processes · running for 2h 07m</text>
+        <path d="M720 171 C755 166 775 146 810 153 S866 143 900 151 S938 137 962 142" fill="none" stroke="#7458e8" stroke-width="3" stroke-linecap="round"/>
+        <text x="907" y="163" fill="#203446" font-size="16" font-weight="750">2.1 GB</text>
+
+        <line x1="20" y1="194" x2="982" y2="194" stroke="#eef2f5"/>
+        <circle cx="42" cy="230" r="18" fill="#e9f8f1"/><text x="35" y="236" fill="#1d9b61" font-size="18" font-weight="700">S</text>
+        <text x="72" y="226" fill="#203446" font-size="14" font-weight="700">Safari</text><text x="72" y="245" fill="#81909e" font-size="11">6 processes · active now</text>
+        <path d="M720 242 C760 235 790 244 822 232 S880 237 912 225 S945 231 962 219" fill="none" stroke="#1d9b61" stroke-width="3" stroke-linecap="round"/>
+        <text x="916" y="235" fill="#203446" font-size="16" font-weight="750">1.4 GB</text>
+      </g>
+    </g>
+  </g>
+</svg>

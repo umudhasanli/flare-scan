@@ -24,7 +24,7 @@ struct DetailPanel: View {
 
             if focus.children.isEmpty {
                 Spacer()
-                Text("Bu qovluq boşdur")
+                Text("This folder is empty")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                 Spacer()
@@ -69,7 +69,7 @@ private struct DetailRow: View {
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.borderless)
-                .help("Təsdiqdən sonra Zibil qutusuna köçür")
+                .help("Move to Trash after confirmation")
             }
             GeometryReader { geo in
                 ZStack(alignment: .leading) {

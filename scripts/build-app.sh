@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# Builds Flare Scan, assembles a proper macOS .app bundle, and signs it with the
-# App Sandbox entitlements. Output: dist/Flare Scan.app
+# Builds Flare Scan, assembles a proper macOS .app bundle, and applies an ad-hoc
+# signature. Output: dist/Flare Scan.app
 #
 set -euo pipefail
 
 APP_NAME="Flare Scan"
 EXECUTABLE_NAME="FlareScan"
 BUNDLE_ID="com.umudhasanli.flarescan"
-VERSION="1.3.0"
-BUILD="4"
+VERSION="1.4.0"
+BUILD="5"
 MIN_MACOS="14.0"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -66,7 +66,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSMinimumSystemVersion</key><string>${MIN_MACOS}</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
-    <key>NSHumanReadableDescription</key><string>Private visual disk space analyzer with Sunburst, Treemap, and confirmed cleanup.</string>
+    <key>NSHumanReadableDescription</key><string>Private disk and application memory analyzer with safe, confirmed cleanup.</string>
     <key>NSHumanReadableCopyright</key><string>© 2026 Umud Hasanli. MIT License.</string>
 </dict>
 </plist>
@@ -74,17 +74,12 @@ PLIST
 
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
-echo "▶ Signing (ad-hoc) with sandbox entitlements…"
-codesign --force \
-  --entitlements "$ROOT/packaging/FlareScan.entitlements" \
-  --sign - "$APP"
+echo "▶ Signing (ad-hoc, standard user permissions)…"
+codesign --force --sign - "$APP"
 
-echo "▶ Verifying signature & entitlements…"
+echo "▶ Verifying signature…"
 codesign --verify --verbose=2 "$APP"
-codesign --display --entitlements - "$APP" 2>/dev/null | grep -q "app-sandbox" \
-  && echo "  ✓ sandbox entitlement present"
-codesign --display --entitlements - "$APP" 2>/dev/null | grep -q "user-selected.read-write" \
-  && echo "  ✓ user-selected read/write entitlement present"
+echo "  ✓ no privileged entitlements"
 
 echo "✔ Built: $APP"
 echo "  Run it with:  open \"$APP\""

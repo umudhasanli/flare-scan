@@ -71,10 +71,10 @@ enum StorageChangeKind: String, Sendable {
 
     var title: String {
         switch self {
-        case .added: return "Yeni"
-        case .grown: return "Böyüyüb"
-        case .shrunk: return "Kiçilib"
-        case .removed: return "Silinib / köçürülüb"
+        case .added: return "Added"
+        case .grown: return "Grew"
+        case .shrunk: return "Shrank"
+        case .removed: return "Removed or moved"
         }
     }
 }

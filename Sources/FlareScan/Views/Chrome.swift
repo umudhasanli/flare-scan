@@ -10,7 +10,7 @@ struct TopBar: View {
             Button {
                 app.chooseAndScan()
             } label: {
-                Label("Qovluq Seç", systemImage: "folder")
+                Label("Choose Folder", systemImage: "folder")
             }
 
             if app.scanRootURL != nil {
@@ -19,20 +19,21 @@ struct TopBar: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("Yenidən tara")
+                .help("Scan again")
 
-                if app.mode != .insights {
+                if app.mode == .sunburst || app.mode == .treemap {
                     Button {
                         app.goUp()
                     } label: {
                         Image(systemName: "arrow.up")
                     }
                     .disabled(app.focus?.parent == nil)
-                    .help("Bir səviyyə yuxarı")
+                    .help("Go up one level")
                 }
             }
 
-            if let focus = app.focus, app.mode != .insights {
+            if let focus = app.focus,
+               app.mode == .sunburst || app.mode == .treemap {
                 Breadcrumb(focus: focus) { app.setFocus($0) }
             }
 
@@ -40,12 +41,13 @@ struct TopBar: View {
 
             Picker("", selection: $app.mode) {
                 ForEach(AppState.ViewMode.allCases) { mode in
-                    Text(mode.rawValue).tag(mode)
+                    Text(mode.rawValue)
+                        .tag(mode)
+                        .disabled(mode != .memory && app.focus == nil)
                 }
             }
             .pickerStyle(.segmented)
             .fixedSize()
-            .disabled(app.focus == nil)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
@@ -94,13 +96,21 @@ struct StatusBar: View {
         HStack(spacing: 10) {
             Image(systemName: "lock.shield.fill")
                 .foregroundStyle(.green)
-            Text("Offline · silmə yalnız təsdiqlə · App Sandbox")
+            Text("Local analysis · no telemetry · cleanup requires confirmation")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
             Spacer(minLength: 12)
 
-            if let hovered = app.hovered {
+            if app.mode == .memory {
+                Image(systemName: "memorychip.fill")
+                    .foregroundStyle(app.memoryMonitorEnabled ? .blue : .secondary)
+                Text(app.memoryMonitorEnabled ? "Memory Watch is active" : "Memory Watch is paused")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(ByteFormat.string(app.memoryTotalCurrentBytes))
+                    .font(.caption.monospacedDigit().weight(.semibold))
+            } else if let hovered = app.hovered {
                 Text(hovered.url.path)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -109,10 +119,10 @@ struct StatusBar: View {
                 Text(ByteFormat.string(hovered.size))
                     .font(.caption.weight(.semibold))
             } else if let root = app.root {
-                Text("\(app.totalItems) element")
+                Text("\(app.totalItems) items")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                Text("Cəmi: \(ByteFormat.string(root.size))")
+                Text("Total: \(ByteFormat.string(root.size))")
                     .font(.caption.weight(.semibold))
             }
         }
@@ -130,9 +140,9 @@ struct ScanningView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .controlSize(.large)
-            Text("Taranır…")
+            Text("Scanning…")
                 .font(.title3.weight(.semibold))
-            Text("\(app.scannedFiles) element · \(ByteFormat.string(app.scannedBytes))")
+            Text("\(app.scannedFiles) items · \(ByteFormat.string(app.scannedBytes))")
                 .foregroundStyle(.secondary)
             Text(app.currentScanPath)
                 .font(.caption)
@@ -140,7 +150,7 @@ struct ScanningView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: 420)
-            Button("Ləğv et") { app.cancelScan() }
+            Button("Cancel") { app.cancelScan() }
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -157,24 +167,32 @@ struct EmptyStateView: View {
             FlareScanLogo(size: 92)
             Text("Flare Scan")
                 .font(.largeTitle.bold())
-            Text("Diskinizin hansı qovluq və fayllarla dolduğunu\ngörün — tam detallı, interaktiv analiz.")
+            Text("See which folders and files are filling your disk\nwith a detailed, interactive analysis.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
 
             Button {
                 app.chooseAndScan()
             } label: {
-                Label("Qovluq və ya Disk Seç", systemImage: "folder")
+                Label("Choose Folder or Volume", systemImage: "folder")
                     .padding(.horizontal, 6)
             }
             .controlSize(.large)
             .buttonStyle(.borderedProminent)
             .padding(.top, 4)
 
+            Button {
+                app.mode = .memory
+                app.startMemoryMonitoring()
+            } label: {
+                Label("Open Memory Watch", systemImage: "memorychip")
+            }
+            .controlSize(.large)
+
             HStack(spacing: 6) {
                 Image(systemName: "lock.shield.fill")
                     .foregroundStyle(.green)
-                Text("Tam offline · silmə yalnız təsdiqlə · şəbəkəyə çıxış yoxdur")
+                Text("Local processing · no telemetry · cleanup only after confirmation")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -195,7 +213,7 @@ struct FlareScanLogo: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: size, height: size)
-                .accessibilityLabel("Flare Scan loqosu")
+                .accessibilityLabel("Flare Scan logo")
         } else {
             Image(systemName: "chart.pie.fill")
                 .font(.system(size: size * 0.65))

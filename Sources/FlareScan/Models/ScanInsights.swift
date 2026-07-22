@@ -8,13 +8,13 @@ enum FileCategory: String, CaseIterable, Identifiable, Sendable {
     var title: String {
         switch self {
         case .video: return "Video"
-        case .images: return "Şəkillər"
+        case .images: return "Images"
         case .audio: return "Audio"
-        case .archives: return "Arxivlər"
-        case .documents: return "Sənədlər"
-        case .code: return "Kod"
-        case .installers: return "Quraşdırıcılar"
-        case .other: return "Digər"
+        case .archives: return "Archives"
+        case .documents: return "Documents"
+        case .code: return "Code"
+        case .installers: return "Installers"
+        case .other: return "Other"
         }
     }
 
