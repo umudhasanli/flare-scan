@@ -42,6 +42,45 @@ struct InsightReportTests {
         #expect(csv.contains("\"movie,\"\"final\"\".mp4\""))
     }
 
+    @Test("exports storage history to JSON and CSV")
+    func exportsHistory() throws {
+        let fixture = makeFixture()
+        let baseline = ScanSnapshot(
+            schemaVersion: 1,
+            createdAt: Date(timeIntervalSince1970: 1_600_000_000),
+            rootAllocatedSize: 200,
+            rootLogicalSize: 180,
+            minimumTrackedSize: 1,
+            totalEligibleFiles: 1,
+            isTruncated: false,
+            entries: [
+                .init(
+                    relativePath: "movie,\"final\".mp4",
+                    allocatedSize: 200,
+                    logicalSize: 180)
+            ])
+        let current = ScanSnapshot.capture(from: fixture.root, minimumTrackedSize: 1)
+        let delta = ScanDelta.compare(
+            baseline: baseline,
+            current: current,
+            root: fixture.root)
+        let report = InsightReport(
+            root: fixture.root,
+            insights: fixture.insights,
+            duplicateGroups: [],
+            scanDelta: delta)
+
+        let data = try report.data(format: .json)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let history = try #require(object["history"] as? [String: Any])
+        let changes = try #require(history["changes"] as? [[String: Any]])
+        #expect(history["netAllocatedChange"] as? Int == 100)
+        #expect(changes.first?["kind"] as? String == "grown")
+
+        let csv = try #require(String(data: report.data(format: .csv), encoding: .utf8))
+        #expect(csv.contains("history_grown+largest+old_large"))
+    }
+
     private func makeFixture() -> (root: FileNode, insights: ScanInsights) {
         let root = FileNode(
             name: "report",

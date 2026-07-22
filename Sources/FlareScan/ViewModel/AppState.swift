@@ -42,9 +42,15 @@ final class AppState: ObservableObject {
     @Published var isExportingReport = false
     @Published var exportError: String?
     @Published var lastExportURL: URL?
+    @Published var hasSavedBaseline = false
+    @Published var baselineSavedAt: Date?
+    @Published var scanDelta: ScanDelta?
+    @Published var isSavingBaseline = false
+    @Published var historyError: String?
 
     private var scanTask: Task<Void, Never>?
     private var duplicateTask: Task<Void, Never>?
+    private var currentSnapshot: ScanSnapshot?
     private var securityScopedURL: URL?
     /// Bumped on every scan/cancel so results from a superseded scan are ignored.
     private var scanGeneration = 0
@@ -92,6 +98,12 @@ final class AppState: ObservableObject {
         duplicateError = nil
         exportError = nil
         lastExportURL = nil
+        hasSavedBaseline = false
+        baselineSavedAt = nil
+        scanDelta = nil
+        historyError = nil
+        isSavingBaseline = false
+        currentSnapshot = nil
 
         scanTask = Task.detached(priority: .userInitiated) { [weak self] in
             let scanner = Scanner()
@@ -108,13 +120,34 @@ final class AppState: ObservableObject {
             let issues = scanner.issues
             let cancelled = Task.isCancelled
             let analysis = cancelled ? nil : result.map { ScanInsights.build(from: $0) }
+            let snapshot = cancelled ? nil : result.map { ScanSnapshot.capture(from: $0) }
+            var delta: ScanDelta?
+            var baselineDate: Date?
+            var historyError: String?
+            if let result, let snapshot, !cancelled {
+                do {
+                    if let baseline = try ScanSnapshotStore().load(for: url) {
+                        baselineDate = baseline.createdAt
+                        delta = ScanDelta.compare(
+                            baseline: baseline,
+                            current: snapshot,
+                            root: result)
+                    }
+                } catch {
+                    historyError = error.localizedDescription
+                }
+            }
             await self?.finishScan(
                 generation: generation,
                 result: cancelled ? nil : result,
                 insights: analysis,
                 count: count,
                 issueCount: issueCount,
-                issues: issues)
+                issues: issues,
+                snapshot: snapshot,
+                delta: delta,
+                baselineDate: baselineDate,
+                historyError: historyError)
         }
     }
 
@@ -126,6 +159,7 @@ final class AppState: ObservableObject {
         stopScan()
         scanGeneration += 1
         isScanning = false
+        isSavingBaseline = false
         currentScanPath = ""
     }
 
@@ -154,7 +188,11 @@ final class AppState: ObservableObject {
         insights: ScanInsights?,
         count: Int,
         issueCount: Int,
-        issues: [ScanIssue]
+        issues: [ScanIssue],
+        snapshot: ScanSnapshot?,
+        delta: ScanDelta?,
+        baselineDate: Date?,
+        historyError: String?
     ) {
         guard generation == scanGeneration else { return }
         if let result {
@@ -164,6 +202,11 @@ final class AppState: ObservableObject {
             scanIssueCount = issueCount
             scanIssues = issues
             self.insights = insights
+            currentSnapshot = snapshot
+            scanDelta = delta
+            baselineSavedAt = baselineDate
+            hasSavedBaseline = baselineDate != nil
+            self.historyError = historyError
         }
         isScanning = false
         currentScanPath = ""
@@ -226,6 +269,64 @@ final class AppState: ObservableObject {
         NSWorkspace.shared.activateFileViewerSelecting([node.url])
     }
 
+    func saveCurrentScanAsBaseline() {
+        guard let snapshot = currentSnapshot,
+              let rootURL = scanRootURL,
+              !isSavingBaseline else { return }
+        let generation = scanGeneration
+        isSavingBaseline = true
+        historyError = nil
+        Task.detached(priority: .utility) { [weak self] in
+            do {
+                try ScanSnapshotStore().save(snapshot, for: rootURL)
+                await self?.finishBaselineChange(
+                    generation: generation,
+                    saved: snapshot,
+                    error: nil)
+            } catch {
+                await self?.finishBaselineChange(
+                    generation: generation,
+                    saved: nil,
+                    error: error.localizedDescription)
+            }
+        }
+    }
+
+    func forgetSavedBaseline() {
+        guard let rootURL = scanRootURL, !isSavingBaseline else { return }
+        let generation = scanGeneration
+        isSavingBaseline = true
+        historyError = nil
+        Task.detached(priority: .utility) { [weak self] in
+            do {
+                try ScanSnapshotStore().remove(for: rootURL)
+                await self?.finishBaselineChange(
+                    generation: generation,
+                    saved: nil,
+                    error: nil)
+            } catch {
+                await self?.finishBaselineChange(
+                    generation: generation,
+                    saved: nil,
+                    error: error.localizedDescription)
+            }
+        }
+    }
+
+    private func finishBaselineChange(
+        generation: Int,
+        saved: ScanSnapshot?,
+        error: String?
+    ) {
+        guard generation == scanGeneration else { return }
+        isSavingBaseline = false
+        historyError = error
+        guard error == nil else { return }
+        hasSavedBaseline = saved != nil
+        baselineSavedAt = saved?.createdAt
+        scanDelta = nil
+    }
+
     func exportInsights(as format: InsightReportFormat) {
         guard let root, let insights, !isExportingReport else { return }
 
@@ -243,7 +344,8 @@ final class AppState: ObservableObject {
             insights: insights,
             duplicateGroups: duplicateGroups ?? [],
             scanIssueCount: scanIssueCount,
-            scanIssues: scanIssues)
+            scanIssues: scanIssues,
+            scanDelta: scanDelta)
         isExportingReport = true
         exportError = nil
         lastExportURL = nil
@@ -284,6 +386,50 @@ final class AppState: ObservableObject {
     private func applyRebuiltInsights(_ updated: ScanInsights, generation: Int) {
         guard scanGeneration == generation else { return }
         insights = updated
+    }
+
+    private func refreshHistoryAfterTreeMutation() {
+        guard let root, let rootURL = scanRootURL else { return }
+        let generation = scanGeneration
+        currentSnapshot = nil
+        scanDelta = nil
+        Task.detached(priority: .utility) { [weak self] in
+            let snapshot = ScanSnapshot.capture(from: root)
+            do {
+                let baseline = try ScanSnapshotStore().load(for: rootURL)
+                let delta = baseline.map {
+                    ScanDelta.compare(baseline: $0, current: snapshot, root: root)
+                }
+                await self?.applyRefreshedHistory(
+                    generation: generation,
+                    snapshot: snapshot,
+                    delta: delta,
+                    baselineDate: baseline?.createdAt,
+                    error: nil)
+            } catch {
+                await self?.applyRefreshedHistory(
+                    generation: generation,
+                    snapshot: snapshot,
+                    delta: nil,
+                    baselineDate: nil,
+                    error: error.localizedDescription)
+            }
+        }
+    }
+
+    private func applyRefreshedHistory(
+        generation: Int,
+        snapshot: ScanSnapshot,
+        delta: ScanDelta?,
+        baselineDate: Date?,
+        error: String?
+    ) {
+        guard generation == scanGeneration else { return }
+        currentSnapshot = snapshot
+        scanDelta = delta
+        baselineSavedAt = baselineDate
+        hasSavedBaseline = baselineDate != nil
+        historyError = error
     }
 
     // MARK: - Navigation
@@ -381,6 +527,7 @@ final class AppState: ObservableObject {
         isFindingDuplicates = false
         duplicateGroups = nil
         rebuildInsights()
+        refreshHistoryAfterTreeMutation()
         hovered = nil
         objectWillChange.send()
     }

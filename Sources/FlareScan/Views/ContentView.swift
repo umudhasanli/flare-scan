@@ -29,6 +29,11 @@ struct ContentView: View {
         } message: {
             Text(app.exportError ?? "Naməlum xəta")
         }
+        .alert("Scan tarixçəsi yenilənmədi", isPresented: historyErrorPresented) {
+            Button("Oldu", role: .cancel) { app.historyError = nil }
+        } message: {
+            Text(app.historyError ?? "Naməlum xəta")
+        }
     }
 
     private var deletionConfirmation: Binding<Bool> {
@@ -44,6 +49,11 @@ struct ContentView: View {
     private var exportErrorPresented: Binding<Bool> {
         Binding(get: { app.exportError != nil },
                 set: { if !$0 { app.exportError = nil } })
+    }
+
+    private var historyErrorPresented: Binding<Bool> {
+        Binding(get: { app.historyError != nil },
+                set: { if !$0 { app.historyError = nil } })
     }
 
     @ViewBuilder

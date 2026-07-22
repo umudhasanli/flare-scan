@@ -10,6 +10,7 @@ struct InsightsView: View {
                 header
                 summaryCards
                 scanQualitySection
+                historySection
                 categorySection
                 largestFilesSection
                 oldLargeFilesSection
@@ -150,6 +151,104 @@ struct InsightsView: View {
         }
     }
 
+    @ViewBuilder
+    private var historySection: some View {
+        InsightSection(
+            title: "What Changed?",
+            subtitle: "İki scan arasında diski hansı faylların doldurduğunu görün"
+        ) {
+            if app.isSavingBaseline {
+                HStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Lokal baseline yenilənir…")
+                        .foregroundStyle(.secondary)
+                }
+            } else if !app.hasSavedBaseline {
+                HStack(spacing: 16) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 30))
+                        .foregroundStyle(.blue)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Bu scan-i baseline kimi saxlayın")
+                            .font(.headline)
+                        Text("Növbəti dəfə eyni qovluğu tarayanda yeni, böyüyən, kiçilən və yoxa çıxan böyük faylları dərhal göstərəcəyik.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Baseline saxla") { app.saveCurrentScanAsBaseline() }
+                        .buttonStyle(.borderedProminent)
+                }
+            } else if let delta = app.scanDelta {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Label(
+                            "Baseline: \(delta.baselineDate.formatted(date: .abbreviated, time: .shortened))",
+                            systemImage: "clock.badge.checkmark")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Baseline-i yenilə") { app.saveCurrentScanAsBaseline() }
+                        Button("Unut", role: .destructive) { app.forgetSavedBaseline() }
+                    }
+
+                    HStack(spacing: 10) {
+                        ChangeMetric(
+                            title: "Net dəyişiklik",
+                            value: signedBytes(delta.netAllocatedChange),
+                            tint: delta.netAllocatedChange > 0 ? .orange : .green)
+                        ChangeMetric(title: "Yeni", value: ByteFormat.string(delta.addedBytes), tint: .blue)
+                        ChangeMetric(title: "Böyüyən", value: ByteFormat.string(delta.grownBytes), tint: .orange)
+                        ChangeMetric(title: "Boşalan", value: ByteFormat.string(delta.releasedBytes), tint: .green)
+                    }
+
+                    if delta.changes.isEmpty {
+                        ContentUnavailableView(
+                            "Böyük dəyişiklik yoxdur",
+                            systemImage: "checkmark.circle",
+                            description: Text("1 MB-dan böyük izlənən fayllar baseline-dan sonra dəyişməyib."))
+                    } else {
+                        VStack(spacing: 0) {
+                            ForEach(delta.changes) { change in
+                                StorageChangeRow(change: change)
+                                if change.id != delta.changes.last?.id { Divider() }
+                            }
+                        }
+                    }
+
+                    if delta.baselineWasTruncated || delta.currentWasTruncated {
+                        Label(
+                            "Snapshot 50,000 ən böyük faylla məhdudlaşdırılıb; çox böyük ağaclarda kiçik dəyişikliklər göstərilməyə bilər.",
+                            systemImage: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Baseline bu scan üçün saxlanıldı")
+                            .font(.headline)
+                        if let date = app.baselineSavedAt {
+                            Text("\(date.formatted(date: .abbreviated, time: .shortened)) · Dəyişiklikləri görmək üçün sonra eyni qovluğu yenidən tarayın.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                    Button("Baseline-i yenilə") { app.saveCurrentScanAsBaseline() }
+                    Button("Unut", role: .destructive) { app.forgetSavedBaseline() }
+                }
+            }
+        }
+    }
+
+    private func signedBytes(_ value: Int64) -> String {
+        if value > 0 { return "+\(ByteFormat.string(value))" }
+        if value < 0 { return "−\(ByteFormat.string(abs(value)))" }
+        return ByteFormat.string(0)
+    }
+
     private var largestFilesSection: some View {
         InsightSection(title: "Ən böyük fayllar", subtitle: "Bütün seçilmiş ağac üzrə ilk 50 fayl") {
             VStack(spacing: 0) {
@@ -272,6 +371,85 @@ private struct MetricCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, minHeight: 70)
         .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct ChangeMetric: View {
+    let title: String
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(value)
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(tint)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+    }
+}
+
+private struct StorageChangeRow: View {
+    @EnvironmentObject private var app: AppState
+    let change: StorageChange
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(change.relativePath)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(change.kind.title)
+                    .font(.caption)
+                    .foregroundStyle(tint)
+            }
+            Spacer(minLength: 12)
+            if change.previousSize > 0, change.currentSize > 0 {
+                Text("\(ByteFormat.string(change.previousSize)) → \(ByteFormat.string(change.currentSize))")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            Text(deltaText)
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .foregroundStyle(tint)
+            if let node = change.node {
+                Button { app.revealInFinder(node) } label: {
+                    Image(systemName: "magnifyingglass")
+                }
+                .buttonStyle(.borderless)
+                .help("Finder-də göstər")
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private var icon: String {
+        switch change.kind {
+        case .added: return "plus.circle.fill"
+        case .grown: return "arrow.up.circle.fill"
+        case .shrunk: return "arrow.down.circle.fill"
+        case .removed: return "minus.circle.fill"
+        }
+    }
+
+    private var tint: Color {
+        switch change.kind {
+        case .added: return .blue
+        case .grown: return .orange
+        case .shrunk: return .green
+        case .removed: return .secondary
+        }
+    }
+
+    private var deltaText: String {
+        if change.delta > 0 { return "+\(ByteFormat.string(change.delta))" }
+        return "−\(ByteFormat.string(abs(change.delta)))"
     }
 }
 

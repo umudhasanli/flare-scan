@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">Flare Scan What Changed storage timeline</title>
+  <desc id="desc">A polished dark macOS interface showing net disk growth, new files, growing files, and released space since a saved baseline.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#06111f"/><stop offset="1" stop-color="#102b42"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#2d7ff9"/><stop offset="1" stop-color="#50b8ff"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#ff6b4a"/><stop offset="1" stop-color="#ffb347"/>
+    </linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity=".38"/></filter>
+  </defs>
+  <rect width="1200" height="650" rx="34" fill="url(#background)"/>
+  <circle cx="1085" cy="75" r="210" fill="#2d7ff9" opacity=".08"/>
+  <circle cx="80" cy="620" r="240" fill="#ff6b4a" opacity=".07"/>
+
+  <g transform="translate(70 48)" filter="url(#shadow)" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif">
+    <rect width="1060" height="550" rx="20" fill="#f7f9fc"/>
+    <path d="M20 0h1020a20 20 0 0 1 20 20v42H0V20A20 20 0 0 1 20 0Z" fill="#e8edf4"/>
+    <circle cx="25" cy="31" r="7" fill="#ff5f57"/><circle cx="49" cy="31" r="7" fill="#febc2e"/><circle cx="73" cy="31" r="7" fill="#28c840"/>
+    <text x="105" y="37" fill="#213547" font-size="15" font-weight="700">Flare Scan</text>
+    <g transform="translate(28 84)">
+      <text x="0" y="28" fill="#13283b" font-size="29" font-weight="760">What Changed?</text>
+      <text x="0" y="54" fill="#6d7f90" font-size="14">Since your baseline · July 14 at 9:42 PM</text>
+      <rect x="786" y="3" width="214" height="40" rx="10" fill="#1677ff"/>
+      <text x="824" y="29" fill="#fff" font-size="14" font-weight="700">Update baseline</text>
+
+      <g transform="translate(0 82)">
+        <rect width="238" height="88" rx="14" fill="#fff" stroke="#dce4ec"/>
+        <text x="18" y="27" fill="#7b8b9b" font-size="12">NET CHANGE</text>
+        <text x="18" y="61" fill="#f06445" font-size="27" font-weight="760">+18.4 GB</text>
+        <rect x="252" width="238" height="88" rx="14" fill="#fff" stroke="#dce4ec"/>
+        <text x="270" y="27" fill="#7b8b9b" font-size="12">NEW FILES</text>
+        <text x="270" y="61" fill="#287df2" font-size="27" font-weight="760">14.1 GB</text>
+        <rect x="504" width="238" height="88" rx="14" fill="#fff" stroke="#dce4ec"/>
+        <text x="522" y="27" fill="#7b8b9b" font-size="12">FILES THAT GREW</text>
+        <text x="522" y="61" fill="#ee8b28" font-size="27" font-weight="760">8.2 GB</text>
+        <rect x="756" width="244" height="88" rx="14" fill="#fff" stroke="#dce4ec"/>
+        <text x="774" y="27" fill="#7b8b9b" font-size="12">SPACE RELEASED</text>
+        <text x="774" y="61" fill="#1d9b61" font-size="27" font-weight="760">3.9 GB</text>
+      </g>
+
+      <g transform="translate(0 196)">
+        <rect width="1000" height="252" rx="15" fill="#fff" stroke="#dce4ec"/>
+        <text x="20" y="35" fill="#13283b" font-size="15" font-weight="700">Biggest changes</text>
+        <line x1="20" y1="53" x2="980" y2="53" stroke="#e7ecf1"/>
+
+        <circle cx="37" cy="87" r="13" fill="#eaf3ff"/><path d="M31 87h12M37 81v12" stroke="#287df2" stroke-width="2" stroke-linecap="round"/>
+        <text x="62" y="83" fill="#203446" font-size="14" font-weight="650">Docker.raw</text>
+        <text x="62" y="102" fill="#81909e" font-size="11">Library / Containers / Docker</text>
+        <text x="878" y="93" fill="#287df2" font-size="15" font-weight="720">+12.6 GB</text>
+        <rect x="740" y="82" width="118" height="8" rx="4" fill="url(#blue)"/>
+
+        <line x1="20" y1="121" x2="980" y2="121" stroke="#eef2f5"/>
+        <circle cx="37" cy="155" r="13" fill="#fff2e6"/><path d="M31 159l6-8 6 8" fill="none" stroke="#ee8b28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="62" y="151" fill="#203446" font-size="14" font-weight="650">Xcode DerivedData</text>
+        <text x="62" y="170" fill="#81909e" font-size="11">Library / Developer / Xcode</text>
+        <text x="891" y="161" fill="#ee8b28" font-size="15" font-weight="720">+4.2 GB</text>
+        <rect x="790" y="150" width="68" height="8" rx="4" fill="url(#orange)"/>
+
+        <line x1="20" y1="189" x2="980" y2="189" stroke="#eef2f5"/>
+        <circle cx="37" cy="222" r="13" fill="#eaf8f1"/><path d="M31 222h12" stroke="#1d9b61" stroke-width="2" stroke-linecap="round"/>
+        <text x="62" y="218" fill="#203446" font-size="14" font-weight="650">Final Cut render cache</text>
+        <text x="62" y="237" fill="#81909e" font-size="11">Movies / Project / Render Files</text>
+        <text x="892" y="228" fill="#1d9b61" font-size="15" font-weight="720">−3.1 GB</text>
+      </g>
+    </g>
+  </g>
+</svg>

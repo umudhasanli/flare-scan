@@ -8,8 +8,8 @@ set -euo pipefail
 APP_NAME="Flare Scan"
 EXECUTABLE_NAME="FlareScan"
 BUNDLE_ID="com.umudhasanli.flarescan"
-VERSION="1.2.0"
-BUILD="3"
+VERSION="1.3.0"
+BUILD="4"
 MIN_MACOS="14.0"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

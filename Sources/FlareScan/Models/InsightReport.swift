@@ -44,6 +44,24 @@ struct InsightReport: Codable, Sendable {
         let message: String
     }
 
+    struct HistoryChange: Codable, Sendable {
+        let path: String
+        let kind: String
+        let previousBytes: Int64
+        let currentBytes: Int64
+        let deltaBytes: Int64
+    }
+
+    struct History: Codable, Sendable {
+        let baselineAt: Date
+        let netAllocatedChange: Int64
+        let addedBytes: Int64
+        let grownBytes: Int64
+        let releasedBytes: Int64
+        let wasTruncated: Bool
+        let changes: [HistoryChange]
+    }
+
     let schemaVersion: Int
     let generatedAt: Date
     let rootName: String
@@ -55,6 +73,7 @@ struct InsightReport: Codable, Sendable {
     let duplicates: [Duplicate]
     /// Bounded sample; the full count is available in `summary.unreadableItems`.
     let scanIssues: [Issue]
+    let history: History?
 
     init(
         root: FileNode,
@@ -62,6 +81,7 @@ struct InsightReport: Codable, Sendable {
         duplicateGroups: [DuplicateGroup],
         scanIssueCount: Int = 0,
         scanIssues: [ScanIssue] = [],
+        scanDelta: ScanDelta? = nil,
         generatedAt: Date = Date()
     ) {
         schemaVersion = 1
@@ -92,6 +112,23 @@ struct InsightReport: Codable, Sendable {
                 files: group.files.map(Self.file))
         }
         self.scanIssues = scanIssues.map { Issue(path: $0.path, message: $0.message) }
+        history = scanDelta.map { delta in
+            History(
+                baselineAt: delta.baselineDate,
+                netAllocatedChange: delta.netAllocatedChange,
+                addedBytes: delta.addedBytes,
+                grownBytes: delta.grownBytes,
+                releasedBytes: delta.releasedBytes,
+                wasTruncated: delta.baselineWasTruncated || delta.currentWasTruncated,
+                changes: delta.changes.map {
+                    HistoryChange(
+                        path: $0.relativePath,
+                        kind: $0.kind.rawValue,
+                        previousBytes: $0.previousSize,
+                        currentBytes: $0.currentSize,
+                        deltaBytes: $0.delta)
+                })
+        }
     }
 
     func data(format: InsightReportFormat) throws -> Data {
@@ -132,6 +169,21 @@ struct InsightReport: Codable, Sendable {
         for (index, group) in duplicates.enumerated() {
             for file in group.files {
                 add(file, finding: "duplicate", duplicateGroup: index + 1)
+            }
+        }
+        if let history {
+            for change in history.changes {
+                let absolutePath = URL(fileURLWithPath: rootPath)
+                    .appendingPathComponent(change.path).path
+                add(
+                    File(
+                        name: URL(fileURLWithPath: change.path).lastPathComponent,
+                        path: absolutePath,
+                        allocatedBytes: change.currentBytes,
+                        logicalBytes: change.currentBytes,
+                        modifiedAt: nil,
+                        category: FileCategory.classify(URL(fileURLWithPath: change.path)).id),
+                    finding: "history_\(change.kind)")
             }
         }
 

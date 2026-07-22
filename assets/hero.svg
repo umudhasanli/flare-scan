@@ -11,10 +11,10 @@
   <circle cx="80" cy="520" r="220" fill="#ff4d6d" opacity=".08"/>
   <g transform="translate(78 74)">
     <text x="0" y="46" fill="#f7fbff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="54" font-weight="750">Flare Scan</text>
-    <text x="0" y="91" fill="#9fb5cc" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="22">Disk space, made visible.</text>
-    <text x="0" y="151" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Interactive Sunburst + Treemap</text>
-    <text x="0" y="185" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Fully offline · Native SwiftUI</text>
-    <text x="0" y="219" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Confirmed moves to macOS Trash</text>
+    <text x="0" y="91" fill="#9fb5cc" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="22">See what uses space — and what changed.</text>
+    <text x="0" y="151" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Sunburst · Treemap · Storage timeline</text>
+    <text x="0" y="185" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Exact duplicates · Old large files</text>
+    <text x="0" y="219" fill="#d8e5f2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="18">Fully offline · Native SwiftUI</text>
     <g transform="translate(0 264)">
       <rect width="185" height="42" rx="21" fill="#1e3b55"/><text x="24" y="27" fill="#b9f6ca" font-family="-apple-system,sans-serif" font-size="14" font-weight="650">◆ APP SANDBOX</text>
       <rect x="198" width="140" height="42" rx="21" fill="#1e3b55"/><text x="222" y="27" fill="#bde0fe" font-family="-apple-system,sans-serif" font-size="14" font-weight="650">● 0 DEPS</text>
@@ -32,11 +32,11 @@
   </g>
   <g transform="translate(910 110)" font-family="-apple-system,sans-serif">
     <rect width="220" height="340" rx="20" fill="#f7fbff" opacity=".96"/>
-    <text x="20" y="38" fill="#102a43" font-size="16" font-weight="700">Largest items</text>
+    <text x="20" y="38" fill="#102a43" font-size="16" font-weight="700">Storage Insights</text>
     <g fill="#36566f" font-size="13">
-      <text x="20" y="78">Projects</text><text x="170" y="78">42 GB</text><rect x="20" y="88" width="175" height="6" rx="3" fill="#ff4d6d"/>
-      <text x="20" y="128">Videos</text><text x="170" y="128">27 GB</text><rect x="20" y="138" width="116" height="6" rx="3" fill="#ff9f1c"/>
-      <text x="20" y="178">Archives</text><text x="170" y="178">18 GB</text><rect x="20" y="188" width="78" height="6" rx="3" fill="#4cc9f0"/>
+      <text x="20" y="78">What changed?</text><text x="155" y="78">+18 GB</text><rect x="20" y="88" width="175" height="6" rx="3" fill="#ff4d6d"/>
+      <text x="20" y="128">Duplicates</text><text x="163" y="128">12 GB</text><rect x="20" y="138" width="116" height="6" rx="3" fill="#ff9f1c"/>
+      <text x="20" y="178">Old files</text><text x="170" y="178">8 GB</text><rect x="20" y="188" width="78" height="6" rx="3" fill="#4cc9f0"/>
     </g>
     <rect x="20" y="245" width="180" height="58" rx="12" fill="#e9f7ef"/>
     <text x="36" y="270" fill="#18794e" font-size="13" font-weight="700">✓ Confirmation required</text>
