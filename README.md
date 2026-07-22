@@ -19,9 +19,9 @@
 **Flare Scan is an open-source macOS disk space analyzer, storage visualizer,
 and safe disk cleanup utility built with SwiftUI.** It shows exactly what
 consumes your Mac's storage. Choose a folder or
-volume and explore it as an interactive **Sunburst** or **Treemap**. Hover for
-the full path and allocated size, click to drill down, and use breadcrumbs to
-move back through the hierarchy.
+volume and explore it as an interactive **Sunburst** or **Treemap**. The
+**Insights** workspace ranks the largest files, explains usage by category, and
+finds byte-for-byte duplicates locally with SHA-256.
 
 When you find something you no longer need, Flare Scan can move that exact item
 to the macOS Trash — only after showing its full path, type, and size in a
@@ -30,6 +30,8 @@ destructive confirmation dialog. The selected scan root itself is protected.
 | | | |
 |---|---|---|
 | 🌞 **Sunburst** — understand nested folders at a glance | 🧱 **Treemap** — compare large items immediately | 🗑️ **Recoverable cleanup** — confirmed moves to Trash |
+| 💡 **Storage Insights** — categories and top files across the full tree | 🧬 **Exact duplicates** — content-hashed, not guessed by name | 🕰️ **Old large files** — surface forgotten space hogs |
+| 📤 **JSON & CSV reports** — export actionable findings | ⚠️ **Scan diagnostics** — know what macOS could not read | 🔎 **Finder actions** — reveal any result in context |
 | 🔒 **App Sandbox** — access stays inside your selection | 📴 **Fully offline** — no network entitlement | ⚡ **Native SwiftUI** — responsive and dependency-free |
 
 ## Contents
@@ -37,6 +39,7 @@ destructive confirmation dialog. The selected scan root itself is protected.
 - [Why Flare Scan](#why-flare-scan)
 - [Install](#install)
 - [Use it](#use-it)
+- [Storage Insights](#storage-insights)
 - [Safe deletion model](#safe-deletion-model)
 - [Privacy and security](#privacy-and-security)
 - [Build from source](#build-from-source)
@@ -56,6 +59,10 @@ on disk, so the expensive branches stand out immediately.
   back to logical size when macOS does not expose allocation data.
 - **Two complementary views.** Sunburst exposes hierarchy; Treemap maximizes
   side-by-side size comparison.
+- **Actionable insights.** See the 50 largest files across the whole scan and a
+  category breakdown based on real allocated bytes.
+- **Exact duplicate detection.** Only same-size candidates are hashed, then
+  SHA-256 confirms byte-for-byte equality before anything is reported.
 - **Background scanning.** Traversal runs away from the main actor and publishes
   throttled progress, keeping the interface responsive.
 - **No hidden services.** No analytics, accounts, cloud sync, ads, or third-party
@@ -91,11 +98,41 @@ cleaner, Flare Scan keeps the workflow local and transparent.
 2. Select one folder or volume in the macOS picker. This explicit choice defines
    the app's sandbox boundary.
 3. Wait for scanning to finish or cancel at any time.
-4. Switch between **Sunburst** and **Treemap**.
+4. Switch between **Sunburst**, **Treemap**, and **Insights**.
 5. Hover over a region to see its path and size; click a directory to drill in.
 6. Use the breadcrumb or up-arrow to navigate back.
 7. To clean up an item, click its red Trash button and carefully verify the
    confirmation dialog before approving.
+
+## Storage Insights
+
+Insights turns a scan into an actionable storage report:
+
+- **Largest files** ranks the top 50 files across the entire selected tree, not
+  only the current folder. Reveal any result in Finder or send it through the
+  same confirmed Trash flow used elsewhere in the app.
+- **Categories** groups allocated bytes into video, images, audio, archives,
+  documents, code, installers, and other files.
+- **Duplicate Finder** first groups files by logical size, then hashes only the
+  candidates larger than 1 MB. A result is shown only when SHA-256 confirms the
+  contents are identical. Analysis can be cancelled and never deletes files
+  automatically.
+- **Old large files** surfaces files larger than 100 MB that have not been
+  modified for at least 180 days. This is a review list, not an automatic claim
+  that a file is safe to remove.
+- **JSON and CSV export** writes a versioned local report containing the scan
+  summary, categories, largest/old files, duplicate findings, and scan-quality
+  diagnostics. CSV safely escapes commas, quotes, and newlines.
+- **Scan completeness** reports how many paths macOS would not allow the app to
+  read and keeps a bounded sample of the errors, instead of silently presenting
+  an incomplete result as complete.
+
+Duplicate hashing runs on a background task and reads files in 1 MB chunks, so
+large files are not loaded into memory at once. The report estimates reclaimable
+space while assuming you keep one copy from each group.
+
+Exports happen only after choosing a destination in the native save panel. They
+contain local paths by design, so review a report before sharing it publicly.
 
 ## Safe deletion model
 
@@ -131,12 +168,14 @@ other apps.
 | **User-selected read/write** | Write permission is required solely for confirmed Trash operations; it is not global disk access. |
 | **No network entitlement** | The sandboxed app cannot initiate network connections. Scan data stays on the Mac. |
 | **No telemetry** | There is no analytics, crash-reporting SDK, login, tracking, or remote configuration. |
+| **Local duplicate hashing** | SHA-256 is computed on-device; file names, paths, hashes, and contents never leave the Mac. |
+| **Explicit report export** | Reports are created only after a save location is chosen and are never uploaded by the app. |
 | **Zero dependencies** | Runtime code uses only Apple SwiftUI, AppKit, and Foundation APIs. |
 | **No symlink traversal** | Scanner treats symbolic links as leaves and never follows them. |
 | **Recoverable cleanup** | Items are moved to macOS Trash, not permanently erased by Flare Scan. |
 
 The exact sandbox policy is readable in
-[`packaging/DiskLens.entitlements`](packaging/DiskLens.entitlements). macOS may
+[`packaging/FlareScan.entitlements`](packaging/FlareScan.entitlements). macOS may
 still deny protected locations, and Flare Scan treats those errors as inaccessible
 rather than trying to bypass system privacy controls.
 
@@ -175,7 +214,7 @@ Public releases without the first-launch warning require an Apple Developer ID:
 
 ```bash
 codesign --force --options runtime \
-  --entitlements packaging/DiskLens.entitlements \
+  --entitlements packaging/FlareScan.entitlements \
   --sign "Developer ID Application: Your Name (TEAMID)" \
   "dist/Flare Scan.app"
 
@@ -190,20 +229,22 @@ xcrun stapler staple "dist/Flare Scan.dmg"
 NSOpenPanel selection
         │ grants a security-scoped sandbox location
         ▼
-Scanner (background task) ──► FileNode tree (allocated sizes)
+Scanner (background task) ──► FileNode tree (allocated + logical sizes)
         │                              │
-        │ progress                     ├──► Sunburst layout
-        ▼                              └──► Treemap layout
+        │ progress + diagnostics       ├──► Sunburst / Treemap
+        ▼                              ├──► categories / largest / old files
 AppState (main actor) ◄──── hover / drill / breadcrumb / rescan
-        │
+        │                              ├──► opt-in SHA-256 duplicates
+        │                              └──► local JSON / CSV report
         └── confirmed target ──► containment checks ──► macOS Trash
 ```
 
 `AppState` owns scan lifecycle, navigation, progress, and deletion validation.
 `Scanner` performs synchronous recursive traversal inside a detached task.
 `FileNode` represents one immutable identity with mutable aggregate size and
-children. SwiftUI Canvas views render precomputed layouts and report hit tests
-back to the main actor.
+children. `ScanInsights` computes bounded top-file, old-file, and category summaries;
+`DuplicateFinder` performs cancellable, chunked hashing. SwiftUI Canvas views
+render precomputed layouts and report hit tests back to the main actor.
 
 ## Project structure
 
@@ -214,18 +255,19 @@ flare-scan/
 │   ├── flare-scan-logo-v2.svg  # project/application logo
 │   └── hero.svg                # GitHub presentation graphic
 ├── packaging/
-│   └── DiskLens.entitlements   # macOS sandbox policy
+│   └── FlareScan.entitlements  # macOS sandbox policy
 ├── scripts/
 │   ├── build-app.sh            # release build, bundle, sign, verify
 │   └── make-dmg.sh             # drag-to-Applications DMG
-└── Sources/DiskLens/
-    ├── DiskLensApp.swift
-    ├── Models/                 # tree and filesystem scanner
-    ├── ViewModel/              # app state and safety validation
-    ├── Layout/                 # Sunburst and Treemap algorithms
-    ├── Views/                  # SwiftUI interface
-    ├── Util/                   # formatting and palette
-    └── Resources/              # bundled logo
+├── Sources/FlareScan/
+│   ├── FlareScanApp.swift
+│   ├── Models/                 # tree, scanner, insights, duplicates
+│   ├── ViewModel/              # app state and safety validation
+│   ├── Layout/                 # Sunburst and Treemap algorithms
+│   ├── Views/                  # SwiftUI interface
+│   ├── Util/                   # formatting and palette
+│   └── Resources/              # bundled logo
+└── Tests/FlareScanTests/       # insights and duplicate correctness tests
 ```
 
 ## Known limitations
@@ -234,8 +276,12 @@ flare-scan/
 - Results are a point-in-time snapshot; changes by Finder or other apps require
   a rescan.
 - Directories macOS refuses to expose are skipped and therefore contribute no
-  size to the result.
+  size to the result; Insights reports the skipped count and up to 100 examples.
 - The details panel currently lists the largest 300 direct children.
+- Duplicate analysis intentionally ignores files smaller than 1 MB by default
+  to avoid spending time hashing tiny, low-value copies.
+- “Old” means “not modified in 180 days”; it does not prove the file is unused
+  or safe to remove.
 - Trash availability and behavior can differ for external or network volumes;
   failures are reported and nothing is removed from the visualization.
 

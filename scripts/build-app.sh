@@ -8,8 +8,8 @@ set -euo pipefail
 APP_NAME="Flare Scan"
 EXECUTABLE_NAME="FlareScan"
 BUNDLE_ID="com.umudhasanli.flarescan"
-VERSION="1.1.0"
-BUILD="2"
+VERSION="1.2.0"
+BUILD="3"
 MIN_MACOS="14.0"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -76,7 +76,7 @@ printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 echo "▶ Signing (ad-hoc) with sandbox entitlements…"
 codesign --force \
-  --entitlements "$ROOT/packaging/DiskLens.entitlements" \
+  --entitlements "$ROOT/packaging/FlareScan.entitlements" \
   --sign - "$APP"
 
 echo "▶ Verifying signature & entitlements…"

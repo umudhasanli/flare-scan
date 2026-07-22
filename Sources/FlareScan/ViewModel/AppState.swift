@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 /// Central, main-actor-isolated state for the app: what was scanned, where the
 /// user is focused, which visualization is showing, and scan progress.
@@ -9,6 +10,7 @@ final class AppState: ObservableObject {
     enum ViewMode: String, CaseIterable, Identifiable {
         case sunburst = "Sunburst"
         case treemap = "Treemap"
+        case insights = "Insights"
         var id: String { rawValue }
     }
 
@@ -24,12 +26,25 @@ final class AppState: ObservableObject {
     @Published var scannedFiles = 0
     @Published var scannedBytes: Int64 = 0
     @Published var totalItems = 0
+    @Published var scanIssueCount = 0
+    @Published var scanIssues: [ScanIssue] = []
     @Published var currentScanPath = ""
     @Published var scanRootURL: URL?
     @Published var pendingDeletion: FileNode?
     @Published var deletionError: String?
+    @Published var insights: ScanInsights?
+    /// `nil` means duplicate analysis has not run; an empty array means it ran cleanly.
+    @Published var duplicateGroups: [DuplicateGroup]?
+    @Published var isFindingDuplicates = false
+    @Published var duplicateFilesHashed = 0
+    @Published var duplicateCandidateFiles = 0
+    @Published var duplicateError: String?
+    @Published var isExportingReport = false
+    @Published var exportError: String?
+    @Published var lastExportURL: URL?
 
     private var scanTask: Task<Void, Never>?
+    private var duplicateTask: Task<Void, Never>?
     private var securityScopedURL: URL?
     /// Bumped on every scan/cancel so results from a superseded scan are ignored.
     private var scanGeneration = 0
@@ -65,11 +80,18 @@ final class AppState: ObservableObject {
         scannedFiles = 0
         scannedBytes = 0
         totalItems = 0
+        scanIssueCount = 0
+        scanIssues = []
         currentScanPath = "Başlanır…"
         scanRootURL = url
         root = nil
         focus = nil
         hovered = nil
+        insights = nil
+        duplicateGroups = nil
+        duplicateError = nil
+        exportError = nil
+        lastExportURL = nil
 
         scanTask = Task.detached(priority: .userInitiated) { [weak self] in
             let scanner = Scanner()
@@ -82,8 +104,17 @@ final class AppState: ObservableObject {
 
             let result = scanner.scan(url)
             let count = scanner.fileCount
+            let issueCount = scanner.issueCount
+            let issues = scanner.issues
             let cancelled = Task.isCancelled
-            await self?.finishScan(generation: generation, result: cancelled ? nil : result, count: count)
+            let analysis = cancelled ? nil : result.map { ScanInsights.build(from: $0) }
+            await self?.finishScan(
+                generation: generation,
+                result: cancelled ? nil : result,
+                insights: analysis,
+                count: count,
+                issueCount: issueCount,
+                issues: issues)
         }
     }
 
@@ -101,6 +132,9 @@ final class AppState: ObservableObject {
     private func stopScan() {
         scanTask?.cancel()
         scanTask = nil
+        duplicateTask?.cancel()
+        duplicateTask = nil
+        isFindingDuplicates = false
         if let securityScopedURL {
             securityScopedURL.stopAccessingSecurityScopedResource()
         }
@@ -114,15 +148,142 @@ final class AppState: ObservableObject {
         currentScanPath = path
     }
 
-    private func finishScan(generation: Int, result: FileNode?, count: Int) {
+    private func finishScan(
+        generation: Int,
+        result: FileNode?,
+        insights: ScanInsights?,
+        count: Int,
+        issueCount: Int,
+        issues: [ScanIssue]
+    ) {
         guard generation == scanGeneration else { return }
         if let result {
             root = result
             focus = result
             totalItems = count
+            scanIssueCount = issueCount
+            scanIssues = issues
+            self.insights = insights
         }
         isScanning = false
         currentScanPath = ""
+    }
+
+    // MARK: - Insights & duplicates
+
+    var duplicateReclaimableBytes: Int64 {
+        duplicateGroups?.reduce(0) { $0 + $1.reclaimableSize } ?? 0
+    }
+
+    func findDuplicates(minimumSize: Int64 = 1_048_576) {
+        guard let root, !isScanning else { return }
+        duplicateTask?.cancel()
+        let generation = scanGeneration
+        isFindingDuplicates = true
+        duplicateGroups = nil
+        duplicateFilesHashed = 0
+        duplicateCandidateFiles = 0
+        duplicateError = nil
+
+        duplicateTask = Task.detached(priority: .userInitiated) { [weak self] in
+            let groups = DuplicateFinder.find(
+                in: root,
+                minimumSize: minimumSize,
+                shouldCancel: { Task.isCancelled },
+                onProgress: { completed, total in
+                    Task { @MainActor in
+                        guard self?.scanGeneration == generation else { return }
+                        self?.duplicateFilesHashed = completed
+                        self?.duplicateCandidateFiles = total
+                    }
+                })
+            let cancelled = Task.isCancelled
+            await self?.finishDuplicateScan(
+                generation: generation,
+                groups: cancelled ? nil : groups,
+                cancelled: cancelled)
+        }
+    }
+
+    func cancelDuplicateScan() {
+        duplicateTask?.cancel()
+        duplicateTask = nil
+        isFindingDuplicates = false
+    }
+
+    private func finishDuplicateScan(
+        generation: Int,
+        groups: [DuplicateGroup]?,
+        cancelled: Bool
+    ) {
+        guard generation == scanGeneration else { return }
+        isFindingDuplicates = false
+        duplicateTask = nil
+        if !cancelled { duplicateGroups = groups ?? [] }
+    }
+
+    func revealInFinder(_ node: FileNode) {
+        NSWorkspace.shared.activateFileViewerSelecting([node.url])
+    }
+
+    func exportInsights(as format: InsightReportFormat) {
+        guard let root, let insights, !isExportingReport else { return }
+
+        let panel = NSSavePanel()
+        panel.title = "Flare Scan hesabatını saxla"
+        panel.prompt = "Saxla"
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = [format == .json ? .json : .commaSeparatedText]
+        let date = Date().formatted(.iso8601.year().month().day())
+        panel.nameFieldStringValue = "Flare Scan Report \(date).\(format.filenameExtension)"
+        guard panel.runModal() == .OK, let destination = panel.url else { return }
+
+        let report = InsightReport(
+            root: root,
+            insights: insights,
+            duplicateGroups: duplicateGroups ?? [],
+            scanIssueCount: scanIssueCount,
+            scanIssues: scanIssues)
+        isExportingReport = true
+        exportError = nil
+        lastExportURL = nil
+
+        Task.detached(priority: .utility) { [weak self] in
+            do {
+                let data = try report.data(format: format)
+                try data.write(to: destination, options: .atomic)
+                await self?.finishReportExport(destination: destination, error: nil)
+            } catch {
+                await self?.finishReportExport(
+                    destination: nil,
+                    error: error.localizedDescription)
+            }
+        }
+    }
+
+    func revealLastExport() {
+        guard let lastExportURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([lastExportURL])
+    }
+
+    private func finishReportExport(destination: URL?, error: String?) {
+        isExportingReport = false
+        lastExportURL = destination
+        exportError = error
+    }
+
+    private func rebuildInsights() {
+        guard let root else { insights = nil; return }
+        let generation = scanGeneration
+        Task.detached(priority: .utility) { [weak self] in
+            let updated = ScanInsights.build(from: root)
+            await self?.applyRebuiltInsights(updated, generation: generation)
+        }
+    }
+
+    private func applyRebuiltInsights(_ updated: ScanInsights, generation: Int) {
+        guard scanGeneration == generation else { return }
+        insights = updated
     }
 
     // MARK: - Navigation
@@ -211,9 +372,15 @@ final class AppState: ObservableObject {
         var ancestor: FileNode? = parent
         while let current = ancestor {
             current.size = max(0, current.size - node.size)
+            current.logicalSize = max(0, current.logicalSize - node.logicalSize)
             ancestor = current.parent
         }
         totalItems = max(0, totalItems - itemCount(in: node))
+        duplicateTask?.cancel()
+        duplicateTask = nil
+        isFindingDuplicates = false
+        duplicateGroups = nil
+        rebuildInsights()
         hovered = nil
         objectWillChange.send()
     }

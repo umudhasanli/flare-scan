@@ -12,11 +12,16 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "FlareScan",
-            path: "Sources/DiskLens",
+            path: "Sources/FlareScan",
             resources: [.process("Resources")],
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]
+        ),
+        .testTarget(
+            name: "FlareScanTests",
+            dependencies: ["FlareScan"],
+            path: "Tests/FlareScanTests"
         )
     ]
 )

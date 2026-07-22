@@ -21,16 +21,18 @@ struct TopBar: View {
                 }
                 .help("Yenidən tara")
 
-                Button {
-                    app.goUp()
-                } label: {
-                    Image(systemName: "arrow.up")
+                if app.mode != .insights {
+                    Button {
+                        app.goUp()
+                    } label: {
+                        Image(systemName: "arrow.up")
+                    }
+                    .disabled(app.focus?.parent == nil)
+                    .help("Bir səviyyə yuxarı")
                 }
-                .disabled(app.focus?.parent == nil)
-                .help("Bir səviyyə yuxarı")
             }
 
-            if let focus = app.focus {
+            if let focus = app.focus, app.mode != .insights {
                 Breadcrumb(focus: focus) { app.setFocus($0) }
             }
 

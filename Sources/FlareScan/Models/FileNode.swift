@@ -10,6 +10,10 @@ final class FileNode: Identifiable, @unchecked Sendable {
     let name: String
     let url: URL
     let isDirectory: Bool
+    let modifiedAt: Date?
+    /// Logical byte length. Used for exact duplicate candidate grouping.
+    var logicalSize: Int64
+    /// Allocated on-disk size used by the visualizations and reclaim estimates.
     var size: Int64
     var children: [FileNode]
     weak var parent: FileNode?
@@ -18,12 +22,16 @@ final class FileNode: Identifiable, @unchecked Sendable {
          url: URL,
          isDirectory: Bool,
          size: Int64,
+         logicalSize: Int64? = nil,
+         modifiedAt: Date? = nil,
          children: [FileNode] = [],
          parent: FileNode? = nil) {
         self.name = name
         self.url = url
         self.isDirectory = isDirectory
         self.size = size
+        self.logicalSize = logicalSize ?? size
+        self.modifiedAt = modifiedAt
         self.children = children
         self.parent = parent
     }

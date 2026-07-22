@@ -24,6 +24,11 @@ struct ContentView: View {
         } message: {
             Text(app.deletionError ?? "Naməlum xəta")
         }
+        .alert("Hesabat saxlanmadı", isPresented: exportErrorPresented) {
+            Button("Oldu", role: .cancel) { app.exportError = nil }
+        } message: {
+            Text(app.exportError ?? "Naməlum xəta")
+        }
     }
 
     private var deletionConfirmation: Binding<Bool> {
@@ -36,17 +41,31 @@ struct ContentView: View {
                 set: { if !$0 { app.deletionError = nil } })
     }
 
+    private var exportErrorPresented: Binding<Bool> {
+        Binding(get: { app.exportError != nil },
+                set: { if !$0 { app.exportError = nil } })
+    }
+
     @ViewBuilder
     private var content: some View {
         if app.isScanning {
             ScanningView()
         } else if let focus = app.focus {
-            HStack(spacing: 0) {
-                VisualizationContainer(focus: focus)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                Divider()
-                DetailPanel(focus: focus)
-                    .frame(width: 300)
+            if app.mode == .insights {
+                if let insights = app.insights {
+                    InsightsView(insights: insights)
+                } else {
+                    ProgressView("Analitika hazırlanır…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                HStack(spacing: 0) {
+                    VisualizationContainer(focus: focus)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Divider()
+                    DetailPanel(focus: focus)
+                        .frame(width: 300)
+                }
             }
         } else {
             EmptyStateView()
@@ -72,6 +91,8 @@ private struct VisualizationContainer: View {
                 TreemapView(focus: focus,
                             onHover: { app.hovered = $0 },
                             onDrill: { app.drill(into: $0) })
+            case .insights:
+                EmptyView()
             }
         }
         .padding(12)
